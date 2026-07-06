@@ -178,6 +178,13 @@
     padding:10px; border-radius:12px; background:#F7F5F0;
   }
   .ctab.active { border-color:#C0A060; background:#FCF3DE; color:#8A6D2E; }
+  .chiprow { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip {
+    appearance:none; border:2px solid #DDD; cursor:pointer;
+    font:inherit; font-size:15px; font-weight:700; color:#777;
+    padding:10px 16px; border-radius:999px; background:#F7F5F0;
+  }
+  .chip.active { border-color:#6EC6FF; background:#EAF6FF; color:#2B6CB0; }
   #panel .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   #panel input[type="text"] {
     font-size:22px; padding:10px; border:2px solid #DDD; border-radius:12px; min-width:0;
@@ -236,6 +243,14 @@
     <button id="add">+ 追加</button>
   </div>
   <div class="sec">
+    <div class="title">「やる」の おと</div>
+    <div class="chiprow" id="goSoundPicker"></div>
+  </div>
+  <div class="sec">
+    <div class="title">「できた」の おと</div>
+    <div class="chiprow" id="doneSoundPicker"></div>
+  </div>
+  <div class="sec">
     <div class="title">音量</div>
     <div class="volrow">
       🔈 <input type="range" id="vol" min="0" max="100"> 🔊
@@ -283,6 +298,9 @@ function load(){
         });
       });
       if (typeof s.volume !== 'number') s.volume = 0.7;
+      if (!s.sound || typeof s.sound !== 'object') s.sound = {};
+      if (typeof s.sound.go !== 'string') s.sound.go = 'pon';
+      if (typeof s.sound.done !== 'string') s.sound.done = 'pinpon';
       return s;
     }
   }catch(e){}
@@ -292,6 +310,7 @@ function load(){
       { name:'たつき', icon:'✈️', items: defaultItems() }
     ],
     volume: 0.7,
+    sound: { go:'pon', done:'pinpon' },
     date: todayStr()
   };
 }
@@ -299,7 +318,7 @@ function save(){ state.date = todayStr(); try{ localStorage.setItem(KEY, JSON.st
 let state = load();
 
 // ================= 効果音(Web Audioで生成・音源ファイル不要) =================
-// ▼ 音を差し替えたいときは playGo / playCheck / playFanfare の中身を変えるだけでOK
+// ▼ 音の種類はGO_SOUNDS/DONE_SOUNDSに追加すれば設定画面の選択肢が増える。ファンファーレはplayFanfareの中身を変更
 let ac = null;
 function audio(){
   if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -317,16 +336,27 @@ function tone(freq, when, dur, type, vol){
   o.connect(g); g.connect(a.destination);
   o.start(t); o.stop(t + dur + 0.05);
 }
-function playGo(){               // やる!のはじまりの音(軽くポーン)
+// ▼ 「やる」ボタンの音の候補(設定画面で選べる)
+const GO_SOUNDS = {
+  pon:    { label:'ポン',   play:function(){ tone(880,  0,    0.18, 'sine', 0.7); tone(1175, 0.09, 0.22, 'sine', 0.6); } },
+  piron:  { label:'ピロン', play:function(){ tone(1318, 0,    0.16, 'sine', 0.7); tone(988,  0.08, 0.22, 'sine', 0.6); } },
+  pokon:  { label:'ポコン', play:function(){ tone(659,  0,    0.22, 'triangle', 0.7); } },
+  kirari: { label:'キラリ', play:function(){ tone(1568, 0,    0.12, 'sine', 0.5); tone(2093, 0.07, 0.18, 'sine', 0.55); } }
+};
+// ▼ 「できた」ボタンの音の候補(設定画面で選べる)
+const DONE_SOUNDS = {
+  pinpon:   { label:'ピンポン', play:function(){ tone(1319, 0,    0.15, 'sine', 0.9); tone(1047, 0.13, 0.40, 'sine', 0.9); tone(2093, 0.13, 0.30, 'sine', 0.15); } },
+  kirakira: { label:'キラキラ', play:function(){ tone(784,  0,    0.14, 'triangle', 0.8); tone(988,  0.10, 0.14, 'triangle', 0.8); tone(1318, 0.20, 0.35, 'triangle', 0.8); } },
+  poron:    { label:'ぽろん',   play:function(){ tone(1046, 0,    0.28, 'triangle', 0.85); tone(2093, 0,    0.20, 'sine', 0.2); } },
+  yattane:  { label:'やったね', play:function(){ tone(880,  0,    0.14, 'triangle', 0.8); tone(1175, 0.12, 0.14, 'triangle', 0.8); tone(1568, 0.24, 0.40, 'triangle', 0.85); } }
+};
+function playSelectedGo(){
   if (state.volume <= 0) return;
-  tone(880,  0,    0.18, 'sine', 0.7);
-  tone(1175, 0.09, 0.22, 'sine', 0.6);
+  (GO_SOUNDS[state.sound.go] || GO_SOUNDS.pon).play();
 }
-function playCheck(){            // ピンポン♪
+function playSelectedDone(){
   if (state.volume <= 0) return;
-  tone(1319, 0,    0.15, 'sine', 0.9);
-  tone(1047, 0.13, 0.40, 'sine', 0.9);
-  tone(2093, 0.13, 0.30, 'sine', 0.15);
+  (DONE_SOUNDS[state.sound.done] || DONE_SOUNDS.pinpon).play();
 }
 function playFanfare(){          // ぜんぶできた!のファンファーレ
   if (state.volume <= 0) return;
@@ -402,7 +432,7 @@ function onGo(ci, itemIdx, card, el){
   it.status = 'doing'; save();
   card.className = 'card state-doing';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
-  playGo();
+  playSelectedGo();
 }
 function onDone(ci, itemIdx, card, el){
   audio();
@@ -414,7 +444,7 @@ function onDone(ci, itemIdx, card, el){
   it.status = 'done'; save();
   card.className = 'card state-done';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
-  playCheck();
+  playSelectedDone();
   const enabled = state.children[ci].items.filter(function(x){ return x.enabled !== false; });
   if (enabled.length && enabled.every(function(x){ return x.status === 'done'; })) setTimeout(celebrate, 600);
 }
@@ -504,8 +534,26 @@ function openPanel(){
   currentEditIdx = 0;
   buildTabs();
   buildEditor(currentEditIdx);
+  buildSoundPicker(document.getElementById('goSoundPicker'), GO_SOUNDS, 'go');
+  buildSoundPicker(document.getElementById('doneSoundPicker'), DONE_SOUNDS, 'done');
   volEl.value = Math.round(state.volume * 100);
   panel.classList.remove('hidden');
+}
+function buildSoundPicker(container, dict, kind){
+  container.innerHTML = '';
+  Object.keys(dict).forEach(function(key){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip' + (key === state.sound[kind] ? ' active' : '');
+    b.textContent = dict[key].label;
+    b.addEventListener('click', function(){
+      audio();
+      state.sound[kind] = key; save();
+      Array.from(container.children).forEach(function(c){ c.classList.remove('active'); });
+      b.classList.add('active');
+      dict[key].play();
+    });
+    container.appendChild(b);
+  });
 }
 function buildTabs(){
   tabsEl.innerHTML = '';
@@ -562,7 +610,7 @@ function commitEditorRows(ci){
 document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true); });
 volEl.addEventListener('input', function(){ state.volume = volEl.value / 100; });
 volEl.addEventListener('change', function(){ save(); });
-document.getElementById('test').addEventListener('click', function(){ audio(); playCheck(); });
+document.getElementById('test').addEventListener('click', function(){ audio(); playSelectedDone(); });
 const resetBtn = document.getElementById('reset');
 resetBtn.addEventListener('click', function(){
   state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
