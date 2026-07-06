@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#FDF6EC">
+<title>したくアプリ</title>
+<style>
+  /* ===== 全体:こども向けに 選択・拡大・引っぱり更新を無効化 ===== */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; }
+  body {
+    height:100vh; height:100dvh;
+    display:flex; flex-direction:column;
+    background:#FDF6EC;
+    color:#4A4A4A;
+    font-family:"Hiragino Maru Gothic ProN","BIZ UDPGothic","Yu Gothic UI","Meiryo",sans-serif;
+    user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+    overflow:hidden;
+  }
+  input { user-select:text; -webkit-user-select:text; }
+  :root { color-scheme: light; }
+  .step:focus-visible { outline:4px solid #6EC6FF; outline-offset:-4px; }
+  /* 端末の「視差効果を減らす」設定に対応 */
+  @media (prefers-reduced-motion: reduce){
+    .step.bounce, .step.wiggle, .card.state-doing .step.done, .card.state-done .step.done .badge,
+    #celebrate .big, .confetti, #hint { animation:none; }
+  }
+
+  /* ===== 兄弟切り替え(上下スクロール) ===== */
+  #scroller {
+    flex:1; overflow-y:auto;
+    scroll-snap-type:y mandatory;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior-y:contain;
+  }
+  .childpage {
+    scroll-snap-align:start; scroll-snap-stop:always;
+    height:100%; min-height:100%;
+    display:flex; flex-direction:column;
+  }
+  .childhead {
+    text-align:center; padding:16px 54px 4px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .cicon { font-size:clamp(34px, 10vw, 58px); line-height:1; }
+  .cname { font-size:clamp(20px, 6vw, 30px); font-weight:800; color:#4A4A4A; }
+  .subtitle { font-size:clamp(12px, 3.6vw, 16px); font-weight:700; color:#C0A060; letter-spacing:.16em; }
+
+  /* ===== やることカード ===== */
+  main.cards {
+    flex:1; display:flex; flex-direction:column;
+    gap:12px; padding:12px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    overflow-y:auto; overscroll-behavior:contain;
+  }
+  .card {
+    position:relative;
+    flex:1; min-height:150px;
+    display:flex; flex-direction:column;
+    background:#FFFFFF;
+    border:5px solid var(--c, #FFB7B2);
+    border-radius:28px;
+    overflow:hidden;
+    box-shadow:0 4px 10px rgba(0,0,0,.08);
+    transition:background .3s, border-color .3s;
+  }
+  /* ===== 上半分:「やる」ボタン ===== */
+  .step {
+    flex:1; width:100%;
+    display:flex; align-items:center; justify-content:center; gap:3vw;
+    appearance:none; border:none; font:inherit; color:inherit; cursor:pointer;
+    background:none;
+  }
+  .step:active { transform:scale(.98); }
+  .step.go .emoji { font-size:clamp(36px, min(15vw, 8vh), 84px); line-height:1; }
+  .step.go .label {
+    font-weight:800; line-height:1.15; text-align:center;
+    font-size:clamp(22px, min(9vw, 6vh), 48px);
+  }
+  /* ===== 下半分:「できた」ボタン ===== */
+  .step.done {
+    border-top:4px dashed #EDE6D6;
+    color:#B7ADA0;
+  }
+  .step.done .donetext {
+    font-weight:800; letter-spacing:.05em;
+    font-size:clamp(20px, min(8vw, 5.5vh), 40px);
+  }
+  .step.done .badge {
+    width:clamp(32px, 9vw, 52px); height:clamp(32px, 9vw, 52px);
+    border-radius:50%; border:4px dashed #DCD2C0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(18px, 5vw, 30px); font-weight:800; color:transparent;
+    flex-shrink:0;
+  }
+  /* まだ「やる」を押していない → できたボタンはお休み中 */
+  .card.state-todo .step.done { opacity:.4; pointer-events:none; }
+  /* 「やる」を押した → やるボタンが光り、できたボタンが誘う */
+  .card.state-doing .step.go { background:color-mix(in srgb, var(--c) 25%, #fff); }
+  .card.state-doing .step.done { color:#8A7A5C; animation:invite 1.3s ease-in-out infinite; }
+  .card.state-doing .step.done .badge { border-color:#C9B98A; }
+  /* できた! */
+  .card.state-done { background:#EAF9EC; border-color:#7BC97B; }
+  .card.state-done .step.done { color:#2E7D4F; }
+  .card.state-done .step.done .badge {
+    border:4px solid #52B788; background:#52B788; color:#fff;
+    animation:pop .35s both;
+  }
+  .step.bounce { animation:bounce .4s; }
+  .step.wiggle { animation:wiggle .3s; }
+  @keyframes pop    { 0%{transform:scale(0)} 60%{transform:scale(1.25)} 100%{transform:scale(1)} }
+  @keyframes bounce { 0%{transform:scale(1)} 30%{transform:scale(1.06)} 60%{transform:scale(.97)} 100%{transform:scale(1)} }
+  @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(1.5deg)} 75%{transform:rotate(-1.5deg)} }
+  @keyframes invite { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+  /* ===== ページ位置のドットとヒント ===== */
+  #dots {
+    position:fixed; z-index:15;
+    bottom:calc(14px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+    display:flex; gap:10px;
+  }
+  #dots button {
+    width:14px; height:14px; border-radius:50%;
+    border:none; padding:0; background:#E3D9C6; cursor:pointer;
+  }
+  #dots button.active { background:#C0A060; }
+  #hint {
+    position:fixed; z-index:15;
+    bottom:calc(42px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+    font-size:26px; color:#C0A060; opacity:.65;
+    animation:hintbounce 1.6s ease-in-out infinite;
+    pointer-events:none;
+  }
+  #hint.hidden { display:none; }
+  @keyframes hintbounce { 0%,100%{transform:translate(-50%,0)} 50%{transform:translate(-50%,8px)} }
+
+  /* ===== ぜんぶできた!のお祝い ===== */
+  #celebrate {
+    position:fixed; inset:0; z-index:50;
+    background:rgba(255,250,235,.93);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4vh;
+  }
+  #celebrate .big { font-size:clamp(64px, 22vw, 160px); animation:tada 1s infinite; }
+  #celebrate .msg { font-size:clamp(44px, 15vw, 110px); font-weight:800; color:#FF8552; }
+  @keyframes tada { 0%,100%{transform:scale(1) rotate(0)} 25%{transform:scale(1.15) rotate(-6deg)} 75%{transform:scale(1.15) rotate(6deg)} }
+  .confetti {
+    position:fixed; top:-6vh; z-index:60;
+    width:14px; height:14px; border-radius:4px;
+    pointer-events:none;
+    animation:fall linear forwards;
+  }
+  @keyframes fall { to { transform:translateY(115vh) rotate(720deg); } }
+
+  /* ===== おとなの設定(⚙長押しで開く) ===== */
+  #gear {
+    position:fixed; top:4px; right:6px; z-index:20;
+    appearance:none; border:none; background:none;
+    font-size:24px; padding:10px; opacity:.3; cursor:pointer;
+  }
+  #panel {
+    position:fixed; inset:0; z-index:100;
+    background:#FFF; overflow-y:auto;
+    padding:20px; display:flex; flex-direction:column; gap:16px;
+  }
+  #panel h2 { font-size:22px; color:#666; }
+  #panel .sec { display:flex; flex-direction:column; gap:8px; }
+  #panel .sec > .title { font-size:15px; font-weight:700; color:#999; }
+  .childtabs { display:flex; gap:8px; }
+  .ctab {
+    flex:1; appearance:none; border:2px solid #DDD; cursor:pointer;
+    font:inherit; font-size:16px; font-weight:700; color:#777;
+    padding:10px; border-radius:12px; background:#F7F5F0;
+  }
+  .ctab.active { border-color:#C0A060; background:#FCF3DE; color:#8A6D2E; }
+  #panel .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  #panel input[type="text"] {
+    font-size:22px; padding:10px; border:2px solid #DDD; border-radius:12px; min-width:0;
+  }
+  #panel .em { width:64px; text-align:center; font-size:26px; }
+  #panel .lb { flex:1; min-width:90px; }
+  #panel button {
+    appearance:none; border:none; cursor:pointer;
+    font:inherit; font-size:17px; font-weight:700;
+    padding:12px; border-radius:12px; background:#EFEFEF; color:#555;
+  }
+  #panel .del { background:#FBEAEA; padding:10px 14px; }
+  /* オンオフ切り替えスイッチ */
+  .toggle { position:relative; display:inline-block; width:52px; height:30px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; position:absolute; }
+  .tslider {
+    position:absolute; inset:0; background:#DDD; border-radius:30px; cursor:pointer;
+    transition:background .2s;
+  }
+  .tslider::before {
+    content:''; position:absolute; width:22px; height:22px; left:4px; top:4px;
+    background:#fff; border-radius:50%; transition:transform .2s;
+    box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .toggle input:checked + .tslider { background:#52B788; }
+  .toggle input:checked + .tslider::before { transform:translateX(22px); }
+  #panel .volrow { display:flex; align-items:center; gap:12px; }
+  #panel input[type="range"] { flex:1; height:32px; }
+  #close { background:#52B788; color:#fff; font-size:20px; padding:16px; }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<button id="gear" aria-label="おとなの設定">⚙️</button>
+<div id="scroller"></div>
+<div id="dots"></div>
+<div id="hint" aria-hidden="true">⌄</div>
+
+<div id="celebrate" class="hidden">
+  <div class="big">🎉</div>
+  <div class="msg">できた!</div>
+  <div class="big">⭐</div>
+</div>
+
+<div id="panel" class="hidden">
+  <h2>おとなの設定</h2>
+  <div class="sec">
+    <div class="title">どちらの したく?</div>
+    <div class="childtabs" id="tabs"></div>
+  </div>
+  <div class="sec">
+    <div class="title">やること(えもじ・ことば・オンオフ)</div>
+    <div id="editor"></div>
+    <button id="add">+ 追加</button>
+  </div>
+  <div class="sec">
+    <div class="title">音量</div>
+    <div class="volrow">
+      🔈 <input type="range" id="vol" min="0" max="100"> 🔊
+      <button id="test">♪ ためす</button>
+    </div>
+  </div>
+  <div class="sec">
+    <button id="reset">チェックを全部リセット</button>
+  </div>
+  <button id="close">保存して とじる</button>
+</div>
+
+<script>
+// ================= データ(端末に自動保存・日付が変わると自動リセット) =================
+const KEY = 'shitaku-v1';
+function todayStr(){ const d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function defaultItems(){
+  return [
+    { emoji:'🪥', label:'はみがき',  status:'todo', enabled:true },
+    { emoji:'🎒', label:'ほいくえん', status:'todo', enabled:true }
+  ];
+}
+function migrateItem(x){                      // 旧データ(done:真偽値/オンオフなし)からの引き継ぎ
+  if (typeof x.status !== 'string') x.status = x.done ? 'done' : 'todo';
+  if (typeof x.enabled !== 'boolean') x.enabled = true;
+  delete x.done;
+}
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s){
+      if (!Array.isArray(s.children)){          // 旧データ(兄弟なし)から兄弟用へ移行
+        const oldItems = Array.isArray(s.items) ? s.items : defaultItems();
+        s.children = [
+          { name:'みずき', icon:'🚃', items: oldItems },
+          { name:'たつき', icon:'✈️', items: defaultItems() }
+        ];
+        delete s.items;
+      }
+      const isNewDay = s.date !== todayStr();
+      s.children.forEach(function(c){
+        c.items.forEach(function(x){
+          migrateItem(x);
+          if (isNewDay) x.status = 'todo';      // 新しい日 → 最初から
+        });
+      });
+      if (typeof s.volume !== 'number') s.volume = 0.7;
+      return s;
+    }
+  }catch(e){}
+  return {
+    children: [
+      { name:'みずき', icon:'🚃', items: defaultItems() },
+      { name:'たつき', icon:'✈️', items: defaultItems() }
+    ],
+    volume: 0.7,
+    date: todayStr()
+  };
+}
+function save(){ state.date = todayStr(); try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+let state = load();
+
+// ================= 効果音(Web Audioで生成・音源ファイル不要) =================
+// ▼ 音を差し替えたいときは playGo / playCheck / playFanfare の中身を変えるだけでOK
+let ac = null;
+function audio(){
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(freq, when, dur, type, vol){
+  const a = audio(), t = a.currentTime + when;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine'; o.frequency.value = freq;
+  const v = (vol == null ? 1 : vol) * state.volume * 0.5;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function playGo(){               // やる!のはじまりの音(軽くポーン)
+  if (state.volume <= 0) return;
+  tone(880,  0,    0.18, 'sine', 0.7);
+  tone(1175, 0.09, 0.22, 'sine', 0.6);
+}
+function playCheck(){            // ピンポン♪
+  if (state.volume <= 0) return;
+  tone(1319, 0,    0.15, 'sine', 0.9);
+  tone(1047, 0.13, 0.40, 'sine', 0.9);
+  tone(2093, 0.13, 0.30, 'sine', 0.15);
+}
+function playFanfare(){          // ぜんぶできた!のファンファーレ
+  if (state.volume <= 0) return;
+  const seq = [[523,0,.16],[659,.16,.16],[784,.32,.16],[1047,.48,.7]];
+  seq.forEach(function(n){ tone(n[0], n[1], n[2], 'triangle', 0.8); tone(n[0]*2, n[1], n[2], 'sine', 0.2); });
+  tone(1319, .48, .7, 'triangle', 0.35);
+  tone(1568, .48, .7, 'triangle', 0.35);
+  tone(2093, .9,  .25, 'sine', 0.3);
+  tone(2637, 1.0, .25, 'sine', 0.3);
+  tone(3136, 1.1, .3,  'sine', 0.3);
+}
+
+// ================= カード表示(兄弟ごとに1ページ) =================
+const scroller = document.getElementById('scroller');
+const PALETTE = ['#FFB7B2','#FFDAC1','#B5EAD7','#C7CEEA','#FFE9A8','#F6C6EA'];
+function render(){
+  scroller.innerHTML = '';
+  state.children.forEach(function(child, ci){
+    const sec = document.createElement('section');
+    sec.className = 'childpage';
+    sec.dataset.ci = ci;
+
+    const head = document.createElement('div'); head.className = 'childhead';
+    const cicon = document.createElement('span'); cicon.className = 'cicon'; cicon.textContent = child.icon;
+    const cname = document.createElement('span'); cname.className = 'cname'; cname.textContent = child.name;
+    const sub = document.createElement('span'); sub.className = 'subtitle'; sub.textContent = 'きょうの したく';
+    head.appendChild(cicon); head.appendChild(cname); head.appendChild(sub);
+
+    const main = document.createElement('main'); main.className = 'cards';
+    const enabledItems = child.items
+      .map(function(it, idx){ return { it: it, idx: idx }; })
+      .filter(function(pair){ return pair.it.enabled !== false; });
+    enabledItems.forEach(function(pair, pi){
+      main.appendChild(buildCard(pair.it, ci, pair.idx, pi));
+    });
+
+    sec.appendChild(head); sec.appendChild(main);
+    scroller.appendChild(sec);
+  });
+  buildDots();
+  setupObserver();
+}
+function buildCard(it, ci, itemIdx, paletteIdx){
+  const card = document.createElement('div');
+  card.className = 'card state-' + it.status;
+  card.style.setProperty('--c', PALETTE[paletteIdx % PALETTE.length]);
+
+  const go = document.createElement('button');
+  go.type = 'button'; go.className = 'step go';
+  const em = document.createElement('span'); em.className = 'emoji'; em.textContent = it.emoji;
+  const lb = document.createElement('span'); lb.className = 'label'; lb.textContent = it.label;
+  go.appendChild(em); go.appendChild(lb);
+
+  const done = document.createElement('button');
+  done.type = 'button'; done.className = 'step done';
+  const dt = document.createElement('span'); dt.className = 'donetext'; dt.textContent = 'できた';
+  const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = '✓';
+  done.appendChild(dt); done.appendChild(bd);
+
+  go.addEventListener('click', function(){ onGo(ci, itemIdx, card, go); });
+  done.addEventListener('click', function(){ onDone(ci, itemIdx, card, done); });
+
+  card.appendChild(go); card.appendChild(done);
+  return card;
+}
+function onGo(ci, itemIdx, card, el){
+  audio();                                    // 最初のタップで音を有効化(スマホ対策)
+  const it = state.children[ci].items[itemIdx];
+  if (it.status !== 'todo'){                  // もう「やる」済み → 小さくゆれるだけ
+    el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle');
+    return;
+  }
+  it.status = 'doing'; save();
+  card.className = 'card state-doing';
+  el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
+  playGo();
+}
+function onDone(ci, itemIdx, card, el){
+  audio();
+  const it = state.children[ci].items[itemIdx];
+  if (it.status !== 'doing'){                 // 「やる」前 or もう完了 → 小さくゆれるだけ
+    el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle');
+    return;
+  }
+  it.status = 'done'; save();
+  card.className = 'card state-done';
+  el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
+  playCheck();
+  const enabled = state.children[ci].items.filter(function(x){ return x.enabled !== false; });
+  if (enabled.length && enabled.every(function(x){ return x.status === 'done'; })) setTimeout(celebrate, 600);
+}
+
+// ================= ページ位置のドット・ヒント =================
+const dotsEl = document.getElementById('dots');
+const hintEl = document.getElementById('hint');
+let observer = null;
+function buildDots(){
+  dotsEl.innerHTML = '';
+  if (state.children.length < 2){ dotsEl.classList.add('hidden'); hintEl.classList.add('hidden'); return; }
+  dotsEl.classList.remove('hidden');
+  state.children.forEach(function(child, i){
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('aria-label', child.name);
+    b.addEventListener('click', function(){
+      const sec = scroller.children[i];
+      if (sec) sec.scrollIntoView({ behavior:'smooth' });
+    });
+    dotsEl.appendChild(b);
+  });
+  updateActivePage(0);
+}
+function updateActivePage(i){
+  Array.from(dotsEl.children).forEach(function(b, bi){ b.classList.toggle('active', bi === i); });
+  hintEl.classList.toggle('hidden', i >= state.children.length - 1);
+}
+function setupObserver(){
+  if (observer) observer.disconnect();
+  if (state.children.length < 2) return;
+  observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (en.isIntersecting && en.intersectionRatio > 0.5) updateActivePage(Number(en.target.dataset.ci));
+    });
+  }, { root: scroller, threshold:[0.5] });
+  Array.from(scroller.children).forEach(function(sec){ observer.observe(sec); });
+}
+
+// ================= お祝い(ファンファーレ+紙吹雪) =================
+const cel = document.getElementById('celebrate');
+let celTimer = null;
+function celebrate(){
+  playFanfare();
+  cel.classList.remove('hidden');
+  spawnConfetti();
+  clearTimeout(celTimer);
+  celTimer = setTimeout(hideCelebrate, 5000);   // 5秒で自動的に終わる(刺激が続きすぎないように)
+}
+function hideCelebrate(){
+  cel.classList.add('hidden');
+  document.querySelectorAll('.confetti').forEach(function(e){ e.remove(); });
+}
+cel.addEventListener('click', hideCelebrate);
+function spawnConfetti(){
+  const colors = ['#FF9AA2','#FFB347','#FFE066','#7BE495','#6EC6FF','#C39BD3'];
+  for (let i = 0; i < 45; i++){
+    const d = document.createElement('div');
+    d.className = 'confetti';
+    d.style.left = (Math.random() * 100) + 'vw';
+    if (i % 6 === 0){ d.textContent = '⭐'; d.style.background = 'none'; d.style.fontSize = '20px'; }
+    else { d.style.background = colors[i % colors.length]; }
+    d.style.animationDuration = (2 + Math.random() * 1.8) + 's';
+    d.style.animationDelay = (Math.random() * 0.7) + 's';
+    document.body.appendChild(d);
+    setTimeout(function(){ d.remove(); }, 5200);
+  }
+}
+
+// ================= おとなの設定(⚙を1.2秒長押しで開く) =================
+const panel = document.getElementById('panel');
+const tabsEl = document.getElementById('tabs');
+const editor = document.getElementById('editor');
+const volEl = document.getElementById('vol');
+const gear = document.getElementById('gear');
+let currentEditIdx = 0;
+let gearTimer = null;
+gear.addEventListener('pointerdown', function(e){ e.preventDefault(); gearTimer = setTimeout(openPanel, 1200); });
+['pointerup','pointerleave','pointercancel'].forEach(function(ev){
+  gear.addEventListener(ev, function(){ clearTimeout(gearTimer); });
+});
+// 長押しメニューや文字選択を出さない(入力欄は除く)
+document.addEventListener('contextmenu', function(e){
+  if (!e.target.closest('input')) e.preventDefault();
+});
+
+function openPanel(){
+  currentEditIdx = 0;
+  buildTabs();
+  buildEditor(currentEditIdx);
+  volEl.value = Math.round(state.volume * 100);
+  panel.classList.remove('hidden');
+}
+function buildTabs(){
+  tabsEl.innerHTML = '';
+  state.children.forEach(function(c, i){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'ctab' + (i === currentEditIdx ? ' active' : '');
+    b.textContent = c.icon + ' ' + c.name;
+    b.addEventListener('click', function(){
+      if (i === currentEditIdx) return;
+      commitEditorRows(currentEditIdx);
+      currentEditIdx = i;
+      buildTabs();
+      buildEditor(currentEditIdx);
+    });
+    tabsEl.appendChild(b);
+  });
+}
+function buildEditor(ci){
+  editor.innerHTML = '';
+  state.children[ci].items.forEach(function(it, i){ addRow(it.emoji, it.label, i, it.enabled); });
+}
+function addRow(em, lb, idx, enabled){
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.dataset.idx = (idx == null) ? '' : String(idx);   // 元の項目番号(状態は閉じるとき最新を参照)
+  const ei = document.createElement('input'); ei.type = 'text'; ei.className = 'em'; ei.value = em || ''; ei.placeholder = '😀';
+  const li = document.createElement('input'); li.type = 'text'; li.className = 'lb'; li.value = lb || ''; li.placeholder = 'ことば(ひらがな)';
+  const tgl = document.createElement('label'); tgl.className = 'toggle';
+  const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'enable'; cb.checked = enabled !== false;
+  const tsl = document.createElement('span'); tsl.className = 'tslider';
+  tgl.appendChild(cb); tgl.appendChild(tsl);
+  const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '🗑';
+  del.addEventListener('click', function(){ r.remove(); });
+  r.appendChild(ei); r.appendChild(li); r.appendChild(tgl); r.appendChild(del);
+  editor.appendChild(r);
+}
+function commitEditorRows(ci){
+  const rows = editor.querySelectorAll('.row');
+  const items = [];
+  rows.forEach(function(r){
+    const label = r.querySelector('.lb').value.trim();
+    if (!label) return;                       // ことばが空の行は無視
+    const idx = r.dataset.idx === '' ? null : Number(r.dataset.idx);
+    const orig = idx != null ? state.children[ci].items[idx] : null;
+    items.push({
+      emoji: r.querySelector('.em').value.trim() || '⭐',
+      label: label,
+      status: orig ? orig.status : 'todo',      // いまの状態を引き継ぐ(リセットが消えないように)
+      enabled: r.querySelector('.enable').checked
+    });
+  });
+  if (items.length) state.children[ci].items = items;  // 全部消されていたら元のまま
+}
+document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true); });
+volEl.addEventListener('input', function(){ state.volume = volEl.value / 100; });
+volEl.addEventListener('change', function(){ save(); });
+document.getElementById('test').addEventListener('click', function(){ audio(); playCheck(); });
+const resetBtn = document.getElementById('reset');
+resetBtn.addEventListener('click', function(){
+  state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
+  save(); render();
+  resetBtn.textContent = 'リセットしました ✓';
+  setTimeout(function(){ resetBtn.textContent = 'チェックを全部リセット'; }, 1500);
+});
+document.getElementById('close').addEventListener('click', function(){
+  commitEditorRows(currentEditIdx);
+  save(); render();
+  panel.classList.add('hidden');
+});
+
+// アプリを開き直したとき、日付が変わっていたら自動リセット
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden && state.date !== todayStr()){
+    state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
+    save(); render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
