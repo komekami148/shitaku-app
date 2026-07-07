@@ -251,6 +251,11 @@
     <div class="chiprow" id="doneSoundPicker"></div>
   </div>
   <div class="sec">
+    <div class="title">おしたくミュージック(えらぶと ながれます・10〜15びょうで くりかえし)</div>
+    <div class="chiprow" id="musicPicker"></div>
+    <button id="musicStop" class="del">■ おんがくを とめる</button>
+  </div>
+  <div class="sec">
     <div class="title">音量</div>
     <div class="volrow">
       🔈 <input type="range" id="vol" min="0" max="100"> 🔊
@@ -301,6 +306,7 @@ function load(){
       if (!s.sound || typeof s.sound !== 'object') s.sound = {};
       if (typeof s.sound.go !== 'string') s.sound.go = 'pon';
       if (typeof s.sound.done !== 'string') s.sound.done = 'pinpon';
+      if (typeof s.sound.music !== 'string') s.sound.music = 'genki';
       return s;
     }
   }catch(e){}
@@ -310,7 +316,7 @@ function load(){
       { name:'たつき', icon:'✈️', items: defaultItems() }
     ],
     volume: 0.7,
-    sound: { go:'pon', done:'pinpon' },
+    sound: { go:'pon', done:'pinpon', music:'genki' },
     date: todayStr()
   };
 }
@@ -321,7 +327,7 @@ let state = load();
 // ▼ 音の種類はGO_SOUNDS/DONE_SOUNDSに追加すれば設定画面の選択肢が増える。ファンファーレはplayFanfareの中身を変更
 let ac = null;
 function audio(){
-  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (!ac || ac.state === 'closed') ac = new (window.AudioContext || window.webkitAudioContext)();
   if (ac.state === 'suspended') ac.resume();
   return ac;
 }
@@ -367,6 +373,60 @@ function playFanfare(){          // ぜんぶできた!のファンファーレ
   tone(2093, .9,  .25, 'sine', 0.3);
   tone(2637, 1.0, .25, 'sine', 0.3);
   tone(3136, 1.1, .3,  'sine', 0.3);
+}
+
+// ================= おしたくミュージック(10〜15秒のフレーズを無限ループ) =================
+// ▼ 新しい曲を増やしたいときはMUSIC_TRACKSに追加すれば設定画面の選択肢が増える
+//    (数字は下のSCALE配列の音階番号。nullは休符)
+const SCALE = [261.63,293.66,329.63,392.00,440.00,523.25,587.33,659.25,783.99,880.00]; // ドレミソラの2オクターブ(不協和音にならない音階)
+function repeatPattern(phrase, times){
+  let out = [];
+  for (let i = 0; i < times; i++) out = out.concat(phrase);
+  return out;
+}
+const MUSIC_TRACKS = {
+  genki: {
+    label:'げんき', beat:0.24, wave:'triangle', bassEvery:4, bassDeg:0, bassVol:0.30,
+    pattern: repeatPattern([4,6,7,6,4,2,4,null], 6)          // 6拍子×8を6回 ≒ 11.5秒
+  },
+  wakuwaku: {
+    label:'わくわく', beat:0.30, wave:'sine', bassEvery:5, bassDeg:0, bassVol:0.28,
+    pattern: repeatPattern([2,4,2,5,4,2,0,null,2,4], 4)      // 10拍×4 = 12秒
+  },
+  yasashii: {
+    label:'やさしい', beat:0.50, wave:'sine', bassEvery:4, bassDeg:0, bassVol:0.22,
+    pattern: repeatPattern([0,2,4,2,0,null,4,2], 3)          // 8拍×3 = 12秒
+  }
+};
+function playMusicLoop(track){
+  const beat = track.beat;
+  track.pattern.forEach(function(deg, i){
+    if (deg != null) tone(SCALE[deg], i * beat, beat * 0.85, track.wave, 0.45);
+  });
+  for (let i = 0; i < track.pattern.length; i += track.bassEvery){
+    tone(SCALE[track.bassDeg] / 2, i * beat, beat * track.bassEvery * 0.6, 'sine', track.bassVol);
+  }
+  return track.pattern.length * beat;
+}
+let musicTimer = null;
+let musicPlaying = false;
+function stopMusic(){
+  musicPlaying = false;
+  clearTimeout(musicTimer);
+}
+function startMusic(key){
+  audio();
+  stopMusic();
+  state.sound.music = key; save();
+  musicPlaying = true;
+  scheduleMusicLoop();
+}
+function scheduleMusicLoop(){
+  if (!musicPlaying) return;
+  if (state.volume <= 0){ musicTimer = setTimeout(scheduleMusicLoop, 1000); return; }  // 音量ゼロの間はスケジュールだけ待機
+  const track = MUSIC_TRACKS[state.sound.music] || MUSIC_TRACKS.genki;
+  const len = playMusicLoop(track);
+  musicTimer = setTimeout(scheduleMusicLoop, len * 1000);
 }
 
 // ================= カード表示(兄弟ごとに1ページ) =================
@@ -487,6 +547,7 @@ function setupObserver(){
 const cel = document.getElementById('celebrate');
 let celTimer = null;
 function celebrate(){
+  if (musicPlaying) stopMusic();          // ファンファーレと音楽が重ならないように
   playFanfare();
   cel.classList.remove('hidden');
   spawnConfetti();
@@ -536,9 +597,30 @@ function openPanel(){
   buildEditor(currentEditIdx);
   buildSoundPicker(document.getElementById('goSoundPicker'), GO_SOUNDS, 'go');
   buildSoundPicker(document.getElementById('doneSoundPicker'), DONE_SOUNDS, 'done');
+  buildMusicPicker();
   volEl.value = Math.round(state.volume * 100);
   panel.classList.remove('hidden');
 }
+function buildMusicPicker(){
+  const container = document.getElementById('musicPicker');
+  container.innerHTML = '';
+  Object.keys(MUSIC_TRACKS).forEach(function(key){
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (musicPlaying && state.sound.music === key ? ' active' : '');
+    b.textContent = MUSIC_TRACKS[key].label;
+    b.addEventListener('click', function(){
+      startMusic(key);
+      Array.from(container.children).forEach(function(c){ c.classList.remove('active'); });
+      b.classList.add('active');
+    });
+    container.appendChild(b);
+  });
+}
+document.getElementById('musicStop').addEventListener('click', function(){
+  stopMusic();
+  Array.from(document.getElementById('musicPicker').children).forEach(function(c){ c.classList.remove('active'); });
+});
 function buildSoundPicker(container, dict, kind){
   container.innerHTML = '';
   Object.keys(dict).forEach(function(key){
@@ -625,8 +707,15 @@ document.getElementById('close').addEventListener('click', function(){
 });
 
 // アプリを開き直したとき、日付が変わっていたら自動リセット
+// ＋ 画面が長く消えたあと(スマホの画面ロック等)にサウンドが鳴らなくなる不具合対策:
+//   復帰のたびにAudioContextを作り直す(古いcontextは端末側で無効化されていることがあるため)
 document.addEventListener('visibilitychange', function(){
-  if (!document.hidden && state.date !== todayStr()){
+  if (document.hidden) return;
+  if (ac){
+    try{ ac.close(); }catch(e){}
+    ac = null;
+  }
+  if (state.date !== todayStr()){
     state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
     save(); render();
   }
