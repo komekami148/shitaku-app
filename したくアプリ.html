@@ -438,6 +438,35 @@ const MUSIC_TRACKS = {
       [5,null,5,null, 6,5,3,null,  8,null,8,null, 7,6,5,null],   // A(高音へ)
       [5,6,7,8, 9,null,8,null,  7,null,6,null, 5,null,null,null] // 締め(駆け上がり)
     )                                                      // 64拍 × 0.20秒 = 12.8秒
+  },
+  soran: {                          // ソーラン:ソーラン節ふう。ラ基準の力強い和のふしまわし+どっこいしょのリズム
+    label:'ソーラン', beat:0.20, wave:'sawtooth', vol:0.48,
+    drum: ['k','k','.','c','.','k','.','c'],
+    pattern: [].concat(
+      [4,4,4,null, 5,6,5,4,  6,6,5,6, 7,null,null,null],         // ヤーレン調A
+      [7,7,8,7, 6,5,6,null,  5,5,6,5, 4,null,null,null],         // こたえるB
+      [4,4,4,null, 5,6,5,4,  8,8,7,8, 9,null,null,null],         // A(高音へ盛り上げ)
+      [9,8,7,6, 7,null,6,5,  4,4,5,4, 4,null,null,null]          // 締め(どっこいしょ)
+    )                                                      // 64拍 × 0.20秒 = 12.8秒
+  },
+  folk: {                           // フォークダンス:オクラホマミキサーふうの跳ねる輪舞
+    label:'フォークダンス', beat:0.24, wave:'sawtooth', vol:0.45,
+    drum: ['k','.','c','.','k','.','c','c'],
+    pattern: [].concat(
+      [5,6,5,3, 4,5,4,null,  3,4,5,6, 7,null,5,null],            // まわるA
+      [7,8,7,5, 6,7,6,null,  5,6,7,8, 9,null,7,null],            // 高音でかけ上がるB
+      [5,6,5,3, 4,5,4,null,  7,7,6,6, 5,null,null,null]          // 締め(もとにもどる)
+    )                                                      // 48拍 × 0.24秒 = 11.5秒
+  },
+  jenka: {                          // ジェンカ:タッタッタッタ・のジャンプするリズム
+    label:'ジェンカ', beat:0.22, wave:'square', vol:0.38,
+    drum: ['k','.','k','.','k','c','c','.'],
+    pattern: [].concat(
+      [5,null,5,null, 5,6,5,null,  4,null,4,null, 4,5,4,null],   // ぴょんぴょんA
+      [3,null,3,null, 3,4,3,null,  5,6,7,null, 8,null,7,null],   // ためてジャンプB
+      [5,null,5,null, 5,6,5,null,  8,8,7,7, 6,6,5,null],         // A(にぎやかに)
+      [6,7,8,null, 8,null,9,null,  8,7,6,7, 5,null,null,null]    // 締め(大ジャンプ)
+    )                                                      // 64拍 × 0.22秒 = 14.1秒
   }
 };
 function playMusicLoop(track){
