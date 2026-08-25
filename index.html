@@ -645,7 +645,8 @@ function hideCelebrate(){
   cel.classList.add('hidden');
   document.querySelectorAll('.confetti').forEach(function(e){ e.remove(); });
 }
-cel.addEventListener('click', hideCelebrate);
+// タッチでは消えない(こどもが うっかり触っても お祝いが 途切れないように)
+// お祝いは 5びょうで 自動的に おわります
 function spawnConfetti(){
   const colors = ['#FF9AA2','#FFB347','#FFE066','#7BE495','#6EC6FF','#C39BD3'];
   for (let i = 0; i < 45; i++){
