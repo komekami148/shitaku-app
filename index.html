@@ -30,6 +30,7 @@
   @media (prefers-reduced-motion: reduce){
     .step.bounce, .step.wiggle, .card.state-doing .step.done, .card.state-done .step.done .badge,
     #celebrate .big, .confetti, #hint { animation:none; }
+    .vehicle { display:none; }
   }
 
   /* ===== 兄弟切り替え(上下スクロール) ===== */
@@ -118,6 +119,20 @@
   @keyframes bounce { 0%{transform:scale(1)} 30%{transform:scale(1.06)} 60%{transform:scale(.97)} 100%{transform:scale(1)} }
   @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(1.5deg)} 75%{transform:rotate(-1.5deg)} }
   @keyframes invite { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+
+  /* ===== 「やる」を押すと のりものが カードを横切る(みずき=電車 / たつき=飛行機) ===== */
+  .step.go { position:relative; overflow:hidden; }
+  .vehicle {
+    position:absolute; left:0; bottom:4px;
+    white-space:nowrap; line-height:1; pointer-events:none;
+    font-size:clamp(28px, min(9vw, 6vh), 52px);
+  }
+  .vehicle.train { animation:run 1.6s cubic-bezier(.45,0,.6,1) forwards; }
+  .vehicle.train .body { display:inline-block; animation:gatagoto .2s steps(2) infinite; }  /* ガタゴト ゆれる */
+  .vehicle.plane { animation:fly 1.6s ease-in forwards; }
+  @keyframes run { from{left:0; transform:translateX(-100%)} to{left:100%; transform:translateX(0)} }
+  @keyframes fly { from{left:0; bottom:0; transform:translateX(-100%)} to{left:100%; bottom:65%; transform:translateX(0)} }
+  @keyframes gatagoto { 0%{transform:translateY(0)} 100%{transform:translateY(-3px)} }
 
   /* ===== ページ位置のドットとヒント ===== */
   #dots {
@@ -243,7 +258,7 @@
     <button id="add">+ 追加</button>
   </div>
   <div class="sec">
-    <div class="title">「やる」の おと</div>
+    <div class="title">「やる」の おと(のりもの＝電車はガタンゴトン・飛行機はヒューン)</div>
     <div class="chiprow" id="goSoundPicker"></div>
   </div>
   <div class="sec">
@@ -342,12 +357,39 @@ function tone(freq, when, dur, type, vol, dest){   // destを指定すると専�
   o.connect(g); g.connect(dest || a.destination);
   o.start(t); o.stop(t + dur + 0.05);
 }
-// ▼ 「やる」ボタンの音の候補(設定画面で選べる)
+function sweep(f1, f2, when, dur, type, vol){       // 音の高さを f1→f2 へ動かしながら のばす(警笛・飛行機用)
+  const a = audio(), t = a.currentTime + when;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f1, t);
+  o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  const v = (vol == null ? 1 : vol) * state.volume * 0.5;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(v, t + 0.05);
+  g.gain.setValueAtTime(v, t + dur * 0.7);
+  g.gain.linearRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t + dur + 0.05);
+}
+function clack(when, freq){ tone(freq, when, 0.09, 'triangle', 0.9); noiseBurst(when, 0.04, 0.25); }   // レールのつなぎ目の「ガタン」
+function playGatan(){                               // ガタンゴトン×2(電車が走り抜ける1.6秒に合わせる)
+  [0, 0.75].forEach(function(s){
+    clack(s, 330); clack(s + 0.12, 392);            // ガ・タン
+    clack(s + 0.38, 262); clack(s + 0.50, 330);     // ゴ・トン
+  });
+}
+function playFuan(){ sweep(659, 659, 0, 0.7, 'sawtooth', 0.3); sweep(784, 784, 0, 0.7, 'sawtooth', 0.25); }   // ファーン(警笛)
+function playHyun(){ sweep(500, 1400, 0, 1.3, 'sine', 0.5); sweep(250, 700, 0, 1.3, 'triangle', 0.3); }        // ヒューン(飛行機)
+function isPlane(ci){ const c = state.children[ci]; return !!c && c.icon.indexOf('✈') !== -1; }      // アイコンが✈️の子は飛行機
+// ▼ 「やる」ボタンの音の候補(設定画面で選べる)。ciは押した子の番号
 const GO_SOUNDS = {
   pon:    { label:'ポン',   play:function(){ tone(880,  0,    0.18, 'sine', 0.7); tone(1175, 0.09, 0.22, 'sine', 0.6); } },
   piron:  { label:'ピロン', play:function(){ tone(1318, 0,    0.16, 'sine', 0.7); tone(988,  0.08, 0.22, 'sine', 0.6); } },
   pokon:  { label:'ポコン', play:function(){ tone(659,  0,    0.22, 'triangle', 0.7); } },
-  kirari: { label:'キラリ', play:function(){ tone(1568, 0,    0.12, 'sine', 0.5); tone(2093, 0.07, 0.18, 'sine', 0.55); } }
+  kirari: { label:'キラリ', play:function(){ tone(1568, 0,    0.12, 'sine', 0.5); tone(2093, 0.07, 0.18, 'sine', 0.55); } },
+  norimono: { label:'のりもの', play:function(ci){ if (isPlane(ci)) playHyun(); else playGatan(); } },
+  gatan:  { label:'ガタンゴトン', play:playGatan },
+  fuan:   { label:'ファーン',     play:playFuan }
 };
 // ▼ 「できた」ボタンの音の候補(設定画面で選べる)
 const DONE_SOUNDS = {
@@ -356,9 +398,9 @@ const DONE_SOUNDS = {
   poron:    { label:'ぽろん',   play:function(){ tone(1046, 0,    0.28, 'triangle', 0.85); tone(2093, 0,    0.20, 'sine', 0.2); } },
   yattane:  { label:'やったね', play:function(){ tone(880,  0,    0.14, 'triangle', 0.8); tone(1175, 0.12, 0.14, 'triangle', 0.8); tone(1568, 0.24, 0.40, 'triangle', 0.85); } }
 };
-function playSelectedGo(){
+function playSelectedGo(ci){
   if (state.volume <= 0) return;
-  (GO_SOUNDS[state.sound.go] || GO_SOUNDS.pon).play();
+  (GO_SOUNDS[state.sound.go] || GO_SOUNDS.pon).play(ci);
 }
 function playSelectedDone(){
   if (state.volume <= 0) return;
@@ -579,7 +621,19 @@ function onGo(ci, itemIdx, card, el){
   it.status = 'doing'; save();
   card.className = 'card state-doing';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
-  playSelectedGo();
+  runVehicle(ci, el);
+  playSelectedGo(ci);
+}
+function runVehicle(ci, el){                  // のりものを1回だけ走らせて、走り終えたら消す
+  const plane = isPlane(ci);
+  const v = document.createElement('span');
+  v.className = 'vehicle ' + (plane ? 'plane' : 'train');
+  const body = document.createElement('span'); body.className = 'body';
+  body.textContent = plane ? '✈️' : '🚃🚃🚃';
+  v.appendChild(body);
+  el.appendChild(v);
+  v.addEventListener('animationend', function(e){ if (e.target === v) v.remove(); });
+  setTimeout(function(){ v.remove(); }, 2500); // 念のため(画面が裏に回ってアニメが止まった場合など)
 }
 function onDone(ci, itemIdx, card, el){
   audio();
@@ -720,7 +774,7 @@ function buildSoundPicker(container, dict, kind){
       state.sound[kind] = key; save();
       Array.from(container.children).forEach(function(c){ c.classList.remove('active'); });
       b.classList.add('active');
-      dict[key].play();
+      dict[key].play(currentEditIdx);         // のりものは いま選んでいるタブの子の音で ためし聞き
     });
     container.appendChild(b);
   });
