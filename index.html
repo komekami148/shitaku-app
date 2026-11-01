@@ -31,6 +31,7 @@
     .step.bounce, .step.wiggle, .card.state-doing .step.done, .card.state-done .step.done .badge,
     #celebrate .big, .confetti, #hint { animation:none; }
     .vehicle { display:none; }
+    .garage .inside span, .garage .shutter, .star { animation:none; }
   }
 
   /* ===== 兄弟切り替え(上下スクロール) ===== */
@@ -230,12 +231,114 @@
   #panel input[type="range"] { flex:1; height:32px; }
   #close { background:#52B788; color:#fff; font-size:20px; padding:16px; }
 
+  /* ===== おやすみ(🌙で開く:おみずは決まった数だけ → ねんねで アプリも寝る) ===== */
+  #moon {
+    position:fixed; top:4px; left:6px; z-index:20;
+    appearance:none; border:none; background:none;
+    font-size:26px; padding:10px; opacity:.55; cursor:pointer;
+  }
+  #night {
+    position:fixed; inset:0; z-index:40;
+    background:#1E2340; color:#F3EBD3;
+    overflow:hidden;
+  }
+  #nightExit {
+    position:absolute; top:4px; right:6px; z-index:5;
+    appearance:none; border:none; background:none; color:#F3EBD3;
+    font-size:22px; padding:12px; opacity:.25; cursor:pointer;
+  }
+  #nightAwake {
+    height:100%; display:flex; flex-direction:column; align-items:center; gap:3vh;
+    padding:calc(24px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .nighttitle { font-size:clamp(26px, 8vw, 44px); font-weight:800; }
+  #waterList { width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px; }
+  .waterrow {
+    position:relative; display:flex; align-items:center; gap:12px;
+    background:#2C3359; border-radius:24px; padding:14px 16px;
+  }
+  .waterrow.wiggle { animation:wiggle .3s; }
+  .waterrow .who {
+    flex:1; min-width:0; display:flex; align-items:center; gap:6px;
+    font-size:clamp(20px, 6vw, 30px); font-weight:800;
+  }
+  .cups { display:flex; gap:14px; }
+  .cup {
+    appearance:none; cursor:pointer; padding:0;
+    position:relative; overflow:hidden;
+    width:clamp(56px, 17vw, 88px); height:clamp(72px, 22vw, 112px);
+    border:5px solid #CFE6FF; border-top:none; border-radius:0 0 18px 18px;
+    background:rgba(255,255,255,.08);
+    transition:border-color .6s;
+  }
+  .cup .water {
+    position:absolute; left:0; right:0; bottom:0; height:75%;
+    background:linear-gradient(#7CC8FF, #3D8BEB);
+    transition:height .6s ease-in;
+  }
+  .cup.empty { border-color:#59607F; }
+  .cup.empty .water { height:0; }
+  .closed-sign {                              /* 全部のんだら「へいてん」の札(下のコップは押せるまま=ゆれて知らせる) */
+    position:absolute; inset:0; border-radius:24px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(30,35,64,.82); color:#FFD98A;
+    font-size:clamp(18px, 5.4vw, 28px); font-weight:800; letter-spacing:.05em;
+    pointer-events:none; animation:pop .35s both;
+  }
+  #sleepBtn {
+    margin-top:auto; margin-bottom:3vh;
+    appearance:none; border:none; cursor:pointer;
+    font:inherit; font-weight:800; font-size:clamp(28px, 9vw, 48px);
+    color:#1E2340; background:#FFD98A;
+    border-radius:999px; padding:18px 52px;
+    box-shadow:0 6px 0 #C9A24E;
+  }
+  #sleepBtn:active { transform:translateY(4px); box-shadow:0 2px 0 #C9A24E; }
+  /* ねんね:のりものが しゃこに入って シャッターが しまり、だんだん暗くなる */
+  #sleepStage { position:absolute; inset:0; background:#0F1226; }
+  .stageinner {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3vh;
+    transition:opacity 30s linear;
+  }
+  #sleepStage.dim .stageinner { opacity:.12; }
+  .bigmoon { font-size:clamp(56px, 18vw, 110px); line-height:1; }
+  .garage { position:relative; width:min(72vw, 400px); height:clamp(130px, 36vw, 210px); margin-top:2vh; }
+  .garage .roof {
+    position:absolute; left:-7%; right:-7%; top:0; height:32%;
+    background:#7A5A40; clip-path:polygon(50% 0, 100% 100%, 0 100%);
+  }
+  .garage .box {
+    position:absolute; left:0; right:0; top:32%; bottom:0;
+    background:#3A3F63; border:6px solid #7A5A40; border-top:none;
+  }
+  .garage .inside {
+    position:absolute; inset:0;
+    display:flex; align-items:flex-end; justify-content:center; gap:5vw;
+    padding-bottom:6px; font-size:clamp(34px, 11vw, 64px); line-height:1;
+  }
+  .garage .inside span { animation:park 2.6s ease-out both; }
+  .garage .inside span:nth-child(2) { animation-delay:.5s; }
+  .garage .inside span:nth-child(3) { animation-delay:1s; }
+  @keyframes park { from{transform:translateX(-90vw)} to{transform:translateX(0)} }
+  .garage .shutter {
+    position:absolute; left:0; right:0; top:0; height:0;
+    background:repeating-linear-gradient(#8A8FB0 0 10px, #767B9C 10px 12px);
+    animation:shutter 1.4s ease-in 3.4s forwards;
+  }
+  @keyframes shutter { to{height:100%} }
+  .sleepmsg { font-size:clamp(26px, 8vw, 46px); font-weight:800; }
+  .sleepmsg2 { font-size:clamp(18px, 5.5vw, 30px); font-weight:700; color:#FFD98A; }
+  .star { position:absolute; line-height:1; animation:twinkle 2.4s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100%{opacity:.25} 50%{opacity:1} }
+
   .hidden { display:none !important; }
 </style>
 </head>
 <body>
 
 <button id="gear" aria-label="おとなの設定">⚙️</button>
+<button id="moon" aria-label="おやすみ">🌙</button>
 <div id="scroller"></div>
 <div id="dots"></div>
 <div id="hint" aria-hidden="true">⌄</div>
@@ -244,6 +347,26 @@
   <div class="big">🎉</div>
   <div class="msg">できた!</div>
   <div class="big">⭐</div>
+</div>
+
+<div id="night" class="hidden">
+  <button id="nightExit" aria-label="もどる(おとなは ながおし)">✕</button>
+  <div id="nightAwake">
+    <div class="nighttitle">🌙 おやすみの じかん</div>
+    <div id="waterList"></div>
+    <button id="sleepBtn" type="button">ねんね 💤</button>
+  </div>
+  <div id="sleepStage" class="hidden">
+    <div class="stageinner">
+      <div class="bigmoon">🌙</div>
+      <div class="garage">
+        <div class="roof"></div>
+        <div class="box"><div class="inside" id="garageInside"></div><div class="shutter"></div></div>
+      </div>
+      <div class="sleepmsg">みんな ねんね</div>
+      <div class="sleepmsg2">おやすみなさい</div>
+    </div>
+  </div>
 </div>
 
 <div id="panel" class="hidden">
@@ -276,6 +399,10 @@
       🔈 <input type="range" id="vol" min="0" max="100"> 🔊
       <button id="test">♪ ためす</button>
     </div>
+  </div>
+  <div class="sec">
+    <div class="title">🌙 おやすみの おみずの かず(ひとり ぶん)</div>
+    <div class="chiprow" id="cupPicker"></div>
   </div>
   <div class="sec">
     <button id="reset">チェックを全部リセット</button>
@@ -337,6 +464,7 @@ function load(){
 }
 function save(){ state.date = todayStr(); try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 let state = load();
+ensureNight();
 
 // ================= 効果音(Web Audioで生成・音源ファイル不要) =================
 // ▼ 音の種類はGO_SOUNDS/DONE_SOUNDSに追加すれば設定画面の選択肢が増える。ファンファーレはplayFanfareの中身を変更
@@ -716,6 +844,160 @@ function spawnConfetti(){
   }
 }
 
+// ================= おやすみ(🌙で開く:おみずは決まった数だけ → ねんねで アプリも寝る) =================
+// おみずの数は「夜」ごとに数える。夜中の0時をまたいでも同じ夜にするため、朝4時で切り替える
+function nightDayStr(){ const d = new Date(Date.now() - 4 * 3600 * 1000); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function ensureNight(){
+  if (!state.night || typeof state.night !== 'object') state.night = {};
+  const n = state.night;
+  if (typeof n.cups !== 'number') n.cups = 2;
+  if (n.date !== nightDayStr() || !Array.isArray(n.drunk)){ n.date = nightDayStr(); n.drunk = []; }   // 新しい夜 → おみずは満タンから
+  state.children.forEach(function(_, i){ if (typeof n.drunk[i] !== 'number') n.drunk[i] = 0; });
+}
+function playGulp(){             // ごくごく(コップを1つ使った)
+  if (state.volume <= 0) return;
+  sweep(700, 350, 0, 0.16, 'sine', 0.6); sweep(650, 320, 0.2, 0.16, 'sine', 0.6);
+}
+function playClosed(){           // へいてん(やさしい「ポーン」)
+  if (state.volume <= 0) return;
+  tone(659, 0, 0.5, 'triangle', 0.5); tone(523, 0.28, 0.9, 'triangle', 0.5);
+}
+function playSleepChime(){       // ねんねボタン(しずかな「ぽろん」)
+  if (state.volume <= 0) return;
+  tone(784, 0, 0.6, 'sine', 0.45); tone(587, 0.3, 0.6, 'sine', 0.45); tone(392, 0.6, 1.2, 'sine', 0.45);
+}
+// こもりうた:ゆっくりの5音階。3回くりかえして(約50秒)しずかに終わる
+const LULLABY = { beat:0.55, pattern: [
+  7,null,5,null, 6,5,3,null,  4,null,3,null, 2,null,null,null,
+  3,null,5,null, 6,null,5,3,  4,3,2,null,    0,null,null,null
+]};                                                        // 32拍 × 0.55秒 = 17.6秒
+function playLullabyOnce(){
+  const bus = musicBus(), beat = LULLABY.beat;
+  LULLABY.pattern.forEach(function(deg, i){
+    if (deg == null) return;
+    tone(SCALE[deg], i * beat, beat * 1.8, 'sine', 0.4, bus);
+    tone(SCALE[deg] / 2, i * beat, beat * 1.8, 'triangle', 0.15, bus);
+  });
+  return LULLABY.pattern.length * beat;
+}
+function startLullaby(){
+  audio();
+  stopMusic();
+  musicPlaying = true;                        // stopMusic()で まとめて止められるよう おしたくミュージックと同じしくみを使う
+  let count = 0;
+  (function loop(){
+    if (!musicPlaying) return;
+    if (count >= 3){ stopMusic(); return; }
+    count++;
+    musicTimer = setTimeout(loop, playLullabyOnce() * 1000);
+  })();
+}
+
+const night = document.getElementById('night');
+const nightAwake = document.getElementById('nightAwake');
+const waterList = document.getElementById('waterList');
+const sleepStage = document.getElementById('sleepStage');
+let sleepTimers = [];
+function openNight(){
+  audio();
+  ensureNight();
+  if (musicPlaying) stopMusic();
+  sleepStage.classList.add('hidden');
+  nightAwake.classList.remove('hidden');
+  buildWater();
+  night.classList.remove('hidden');
+}
+function closeNight(){
+  sleepTimers.forEach(clearTimeout); sleepTimers = [];
+  stopMusic();
+  night.classList.add('hidden');
+}
+function buildWater(){
+  waterList.innerHTML = '';
+  state.children.forEach(function(child, ci){
+    const row = document.createElement('div'); row.className = 'waterrow';
+    const who = document.createElement('div'); who.className = 'who';
+    who.textContent = child.icon + ' ' + child.name;
+    const cups = document.createElement('div'); cups.className = 'cups';
+    for (let k = 0; k < state.night.cups; k++){
+      const cup = document.createElement('button');
+      cup.type = 'button'; cup.className = 'cup'; cup.setAttribute('aria-label', 'おみず');
+      const w = document.createElement('div'); w.className = 'water';
+      cup.appendChild(w);
+      cup.addEventListener('click', function(){ onCup(ci, row); });
+      cups.appendChild(cup);
+    }
+    row.appendChild(who); row.appendChild(cups);
+    waterList.appendChild(row);
+    updateCups(ci, row);
+    if (state.night.drunk[ci] >= state.night.cups) addClosedSign(row);
+  });
+}
+function updateCups(ci, row){                 // 右のコップから順に からっぽにする
+  const cups = row.querySelectorAll('.cup');
+  cups.forEach(function(c, k){ c.classList.toggle('empty', k >= cups.length - state.night.drunk[ci]); });
+}
+function addClosedSign(row){
+  if (row.querySelector('.closed-sign')) return;
+  const s = document.createElement('div'); s.className = 'closed-sign';
+  s.textContent = '🚰 おみずやさん へいてん';
+  row.appendChild(s);
+}
+function onCup(ci, row){
+  audio();
+  ensureNight();
+  if (state.night.drunk[ci] >= state.night.cups){   // もう ないよ → ゆれて「ポーン」
+    row.classList.remove('wiggle'); void row.offsetWidth; row.classList.add('wiggle');
+    playClosed();
+    return;
+  }
+  state.night.drunk[ci]++; save();
+  updateCups(ci, row);
+  playGulp();
+  if (state.night.drunk[ci] >= state.night.cups){
+    setTimeout(function(){ addClosedSign(row); playClosed(); }, 700);
+  }
+}
+function startSleep(){
+  audio();
+  if (musicPlaying) stopMusic();
+  playSleepChime();
+  const inside = document.getElementById('garageInside');
+  inside.innerHTML = '';
+  state.children.forEach(function(c){                // それぞれの のりもの(🚃・✈️)が しゃこに入る
+    const v = document.createElement('span'); v.textContent = c.icon;
+    inside.appendChild(v);
+  });
+  sleepStage.querySelectorAll('.star').forEach(function(e){ e.remove(); });
+  for (let i = 0; i < 14; i++){
+    const s = document.createElement('span'); s.className = 'star';
+    s.textContent = i % 3 ? '✦' : '⭐';
+    s.style.left = (Math.random() * 92 + 2) + '%';
+    s.style.top = (Math.random() * 30 + 3) + '%';
+    s.style.fontSize = (12 + Math.random() * 14) + 'px';
+    s.style.color = '#FFE9A8';
+    s.style.animationDelay = (Math.random() * 2.4) + 's';
+    sleepStage.appendChild(s);
+  }
+  sleepStage.classList.remove('dim');
+  nightAwake.classList.add('hidden');
+  sleepStage.classList.remove('hidden');
+  sleepTimers.forEach(clearTimeout);
+  sleepTimers = [
+    setTimeout(startLullaby, 5000),                                          // シャッターが しまったら こもりうた
+    setTimeout(function(){ sleepStage.classList.add('dim'); }, 12000)       // そのあと30秒かけて ほぼ まっくらに
+  ];
+}
+document.getElementById('moon').addEventListener('click', openNight);
+document.getElementById('sleepBtn').addEventListener('click', startSleep);
+// もどるは おとなだけ(✕を1びょう長押し)。こどもが さわっても もどらない
+const nightExit = document.getElementById('nightExit');
+let exitTimer = null;
+nightExit.addEventListener('pointerdown', function(e){ e.preventDefault(); exitTimer = setTimeout(closeNight, 1000); });
+['pointerup','pointerleave','pointercancel'].forEach(function(ev){
+  nightExit.addEventListener(ev, function(){ clearTimeout(exitTimer); });
+});
+
 // ================= おとなの設定(⚙を1.2秒長押しで開く) =================
 const panel = document.getElementById('panel');
 const tabsEl = document.getElementById('tabs');
@@ -740,6 +1022,7 @@ function openPanel(){
   buildSoundPicker(document.getElementById('goSoundPicker'), GO_SOUNDS, 'go');
   buildSoundPicker(document.getElementById('doneSoundPicker'), DONE_SOUNDS, 'done');
   buildMusicPicker();
+  buildCupPicker();
   volEl.value = Math.round(state.volume * 100);
   panel.classList.remove('hidden');
 }
@@ -831,6 +1114,21 @@ function commitEditorRows(ci){
   });
   if (items.length) state.children[ci].items = items;  // 全部消されていたら元のまま
 }
+function buildCupPicker(){
+  const container = document.getElementById('cupPicker');
+  container.innerHTML = '';
+  [1, 2, 3, 4].forEach(function(n){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip' + (n === state.night.cups ? ' active' : '');
+    b.textContent = n + 'はい';
+    b.addEventListener('click', function(){
+      state.night.cups = n; save();
+      Array.from(container.children).forEach(function(c){ c.classList.remove('active'); });
+      b.classList.add('active');
+    });
+    container.appendChild(b);
+  });
+}
 document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true); });
 volEl.addEventListener('input', function(){ state.volume = volEl.value / 100; });
 volEl.addEventListener('change', function(){ save(); });
@@ -838,6 +1136,7 @@ document.getElementById('test').addEventListener('click', function(){ audio(); p
 const resetBtn = document.getElementById('reset');
 resetBtn.addEventListener('click', function(){
   state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
+  state.night.drunk = state.children.map(function(){ return 0; });   // おやすみの おみずも もとにもどす
   save(); render();
   resetBtn.textContent = 'リセットしました ✓';
   setTimeout(function(){ resetBtn.textContent = 'チェックを全部リセット'; }, 1500);
