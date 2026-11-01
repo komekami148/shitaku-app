@@ -135,6 +135,27 @@
   @keyframes fly { from{left:0; bottom:0; transform:translateX(-100%)} to{left:100%; bottom:65%; transform:translateX(0)} }
   @keyframes gatagoto { 0%{transform:translateY(0)} 100%{transform:translateY(-3px)} }
 
+  /* ===== すなどけい:⏳を設定した やることは「やる」で でんしゃが えきに むかって すすむ ===== */
+  .step.go.has-track { padding-bottom:clamp(34px, 9vw, 48px); }
+  .track { position:absolute; left:14px; right:14px; bottom:8px; height:clamp(30px, 8vw, 42px); pointer-events:none; }
+  .track .rail {
+    position:absolute; left:0; right:0; bottom:2px; height:4px; border-radius:2px;
+    background:repeating-linear-gradient(90deg, #C9B98A 0 10px, transparent 10px 16px);
+  }
+  .track .station { position:absolute; right:0; bottom:4px; font-size:clamp(24px, 7vw, 36px); line-height:1; }
+  .track .runner  { position:absolute; left:0;  bottom:4px; font-size:clamp(22px, 6.5vw, 34px); line-height:1; }
+  .card.state-todo .track { opacity:.45; }
+  .card.state-doing .track .runner { animation:approach linear forwards; }   /* 長さ(秒)は やることごとに JSで入れる */
+  .card.state-done .track { display:none; }
+  .card.arrived .track .station { animation:bounce .5s 3; }
+  @keyframes approach { from{left:0} to{left:calc(100% - 2.6em)} }
+  .ontime {
+    position:absolute; top:8px; right:10px; z-index:2;
+    font-size:clamp(14px, 4.2vw, 20px); font-weight:800; color:#E07A1F;
+    background:#FFF3C4; border-radius:999px; padding:4px 12px;
+    animation:pop .4s both; pointer-events:none;
+  }
+
   /* ===== ページ位置のドットとヒント ===== */
   #dots {
     position:fixed; z-index:15;
@@ -230,6 +251,17 @@
   #panel .volrow { display:flex; align-items:center; gap:12px; }
   #panel input[type="range"] { flex:1; height:32px; }
   #close { background:#52B788; color:#fff; font-size:20px; padding:16px; }
+  #panel .chip.active { border-color:#6EC6FF; background:#EAF6FF; color:#2B6CB0; }   /* #panel button より強く(選んでいる音が わかるように) */
+  #editor .row { padding:8px 0; border-bottom:1px dashed #EEE; }
+  #editor input.lb { flex:1 1 calc(100% - 80px); }   /* 1行目=えもじ+ことば、2行目=⏳・オンオフ・🗑 */
+  #panel select { font:inherit; font-size:16px; padding:8px; border:2px solid #DDD; border-radius:12px; background:#fff; color:#555; }
+  #panel .hint { font-size:13px; color:#AAA; }
+  #panel .tthumb {
+    width:64px; height:64px; padding:0; flex-shrink:0; overflow:hidden;
+    border:2px solid #DDD; border-radius:12px; background:#F7F5F0;
+    display:flex; align-items:center; justify-content:center; font-size:26px;
+  }
+  #panel .tthumb img { width:100%; height:100%; object-fit:cover; }
 
   /* ===== おやすみ(🌙で開く:おみずは決まった数だけ → ねんねで アプリも寝る) ===== */
   #moon {
@@ -247,11 +279,43 @@
     appearance:none; border:none; background:none; color:#F3EBD3;
     font-size:22px; padding:12px; opacity:.25; cursor:pointer;
   }
+  #night.sleeping #nightExit { opacity:.08; }
   #nightAwake {
-    height:100%; display:flex; flex-direction:column; align-items:center; gap:3vh;
-    padding:calc(24px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+    height:100%; display:flex; flex-direction:column; align-items:center; gap:2vh;
+    padding:calc(20px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+    overflow-y:auto;
   }
-  .nighttitle { font-size:clamp(26px, 8vw, 44px); font-weight:800; }
+  .nighttitle { font-size:clamp(22px, 6.5vw, 36px); font-weight:800; }
+  /* おやすみでんしゃ くじ */
+  #kujiBox { width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .nightsub { font-size:clamp(15px, 4.4vw, 20px); font-weight:700; color:#FFD98A; letter-spacing:.1em; }
+  #kujiSlots { width:100%; display:flex; gap:12px; }
+  .slot {
+    flex:1; min-width:0; background:#2C3359; border-radius:20px; padding:10px;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .slothead { font-size:clamp(16px, 4.8vw, 22px); font-weight:800; }
+  .slotface {
+    width:100%; height:clamp(90px, 26vw, 130px); overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    background:#1E2340; border-radius:14px;
+  }
+  .slotface img { width:100%; flex:1; min-height:0; object-fit:cover; }
+  .slotface .tem { font-size:clamp(34px, 10vw, 52px); line-height:1; }
+  .slotface .tname {
+    max-width:100%; padding:0 4px 4px;
+    font-size:clamp(13px, 3.8vw, 17px); font-weight:700;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .slotface.pop { animation:pop .4s both; }
+  #kujiBtn {
+    appearance:none; border:none; cursor:pointer;
+    font:inherit; font-weight:800; font-size:clamp(20px, 6vw, 30px);
+    color:#1E2340; background:#FFD98A; border-radius:999px; padding:10px 32px;
+    box-shadow:0 5px 0 #C9A24E;
+  }
+  #kujiBtn:active { transform:translateY(4px); box-shadow:0 1px 0 #C9A24E; }
+  #kujiBtn:disabled { opacity:.5; }
   #waterList { width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px; }
   .waterrow {
     position:relative; display:flex; align-items:center; gap:12px;
@@ -266,7 +330,7 @@
   .cup {
     appearance:none; cursor:pointer; padding:0;
     position:relative; overflow:hidden;
-    width:clamp(56px, 17vw, 88px); height:clamp(72px, 22vw, 112px);
+    width:clamp(52px, 15vw, 80px); height:clamp(64px, 18vw, 96px);
     border:5px solid #CFE6FF; border-top:none; border-radius:0 0 18px 18px;
     background:rgba(255,255,255,.08);
     transition:border-color .6s;
@@ -285,23 +349,30 @@
     font-size:clamp(18px, 5.4vw, 28px); font-weight:800; letter-spacing:.05em;
     pointer-events:none; animation:pop .35s both;
   }
-  #sleepBtn {
-    margin-top:auto; margin-bottom:3vh;
+  /* ねんねボタン:こどもごとに1つ。みんなが押したら ねんねが はじまる */
+  #sleepBtns { margin-top:auto; margin-bottom:2vh; width:100%; max-width:560px; display:flex; gap:14px; justify-content:center; }
+  .sleepbtn {
+    flex:1; max-width:240px;
     appearance:none; border:none; cursor:pointer;
-    font:inherit; font-weight:800; font-size:clamp(28px, 9vw, 48px);
-    color:#1E2340; background:#FFD98A;
-    border-radius:999px; padding:18px 52px;
+    font:inherit; font-weight:800; font-size:clamp(22px, 6.5vw, 34px);
+    color:#1E2340; background:#FFD98A; border-radius:28px; padding:12px 8px;
     box-shadow:0 6px 0 #C9A24E;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
   }
-  #sleepBtn:active { transform:translateY(4px); box-shadow:0 2px 0 #C9A24E; }
-  /* ねんね:のりものが しゃこに入って シャッターが しまり、だんだん暗くなる */
-  #sleepStage { position:absolute; inset:0; background:#0F1226; }
+  .sleepbtn .si { font-size:clamp(28px, 8vw, 44px); line-height:1; }
+  .sleepbtn .ss { font-size:clamp(12px, 3.6vw, 16px); font-weight:700; min-height:1.2em; }
+  .sleepbtn:active { transform:translateY(4px); box-shadow:0 2px 0 #C9A24E; }
+  .sleepbtn.on { background:#52B788; color:#fff; box-shadow:0 2px 0 #2E7D4F; transform:translateY(4px); }
+  .sleepbtn.wiggle { animation:wiggle .3s; }
+  /* ねんね:のりものが 5びょうかけて しゃこに入り、シャッターが しまったら こもりうた(約20秒)の間に まっくらになる */
+  #sleepStage { position:absolute; inset:0; background:#0F1226; transition:background 20s linear; }
+  #sleepStage.dim { background:#000; }
   .stageinner {
     position:absolute; inset:0;
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3vh;
-    transition:opacity 30s linear;
+    transition:opacity 20s linear;
   }
-  #sleepStage.dim .stageinner { opacity:.12; }
+  #sleepStage.dim .stageinner { opacity:0; }
   .bigmoon { font-size:clamp(56px, 18vw, 110px); line-height:1; }
   .garage { position:relative; width:min(72vw, 400px); height:clamp(130px, 36vw, 210px); margin-top:2vh; }
   .garage .roof {
@@ -317,14 +388,14 @@
     display:flex; align-items:flex-end; justify-content:center; gap:5vw;
     padding-bottom:6px; font-size:clamp(34px, 11vw, 64px); line-height:1;
   }
-  .garage .inside span { animation:park 2.6s ease-out both; }
-  .garage .inside span:nth-child(2) { animation-delay:.5s; }
-  .garage .inside span:nth-child(3) { animation-delay:1s; }
+  .garage .inside span { animation:park 5s ease-out both; }
+  .garage .inside span:nth-child(2) { animation-delay:.4s; }
+  .garage .inside span:nth-child(3) { animation-delay:.8s; }
   @keyframes park { from{transform:translateX(-90vw)} to{transform:translateX(0)} }
   .garage .shutter {
     position:absolute; left:0; right:0; top:0; height:0;
     background:repeating-linear-gradient(#8A8FB0 0 10px, #767B9C 10px 12px);
-    animation:shutter 1.4s ease-in 3.4s forwards;
+    animation:shutter 1.4s ease-in 5.6s forwards;
   }
   @keyframes shutter { to{height:100%} }
   .sleepmsg { font-size:clamp(26px, 8vw, 46px); font-weight:800; }
@@ -353,8 +424,13 @@
   <button id="nightExit" aria-label="もどる(おとなは ながおし)">✕</button>
   <div id="nightAwake">
     <div class="nighttitle">🌙 おやすみの じかん</div>
+    <div id="kujiBox">
+      <div class="nightsub">きょうの おやすみでんしゃ</div>
+      <div id="kujiSlots"></div>
+      <button id="kujiBtn" type="button">🎲 くじを ひく</button>
+    </div>
     <div id="waterList"></div>
-    <button id="sleepBtn" type="button">ねんね 💤</button>
+    <div id="sleepBtns"></div>
   </div>
   <div id="sleepStage" class="hidden">
     <div class="stageinner">
@@ -376,7 +452,8 @@
     <div class="childtabs" id="tabs"></div>
   </div>
   <div class="sec">
-    <div class="title">やること(えもじ・ことば・オンオフ)</div>
+    <div class="title">やること(えもじ・ことば・⏳すなどけい・オンオフ)</div>
+    <div class="hint">⏳を えらぶと「やる」を押したとき でんしゃが えきに むかって すすみます(おきがえ むけ)</div>
     <div id="editor"></div>
     <button id="add">+ 追加</button>
   </div>
@@ -405,6 +482,12 @@
     <div class="chiprow" id="cupPicker"></div>
   </div>
   <div class="sec">
+    <div class="title">🌙 おやすみでんしゃ(くじで だれと ねるかを きめる)</div>
+    <div class="hint">📷を押して しゃしんを とると、じが よめなくても わかります</div>
+    <div id="trainEditor"></div>
+    <button id="addTrain">+ でんしゃを ふやす</button>
+  </div>
+  <div class="sec">
     <button id="reset">チェックを全部リセット</button>
   </div>
   <button id="close">保存して とじる</button>
@@ -423,8 +506,10 @@ function defaultItems(){
 function migrateItem(x){                      // 旧データ(done:真偽値/オンオフなし)からの引き継ぎ
   if (typeof x.status !== 'string') x.status = x.done ? 'done' : 'todo';
   if (typeof x.enabled !== 'boolean') x.enabled = true;
+  if (typeof x.timer !== 'number') x.timer = 0;   // すなどけいの秒数(0=なし)
   delete x.done;
 }
+function resetItem(x){ x.status = 'todo'; delete x.timerStart; delete x.onTime; }
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -441,7 +526,7 @@ function load(){
       s.children.forEach(function(c){
         c.items.forEach(function(x){
           migrateItem(x);
-          if (isNewDay) x.status = 'todo';      // 新しい日 → 最初から
+          if (isNewDay) resetItem(x);           // 新しい日 → 最初から
         });
       });
       if (typeof s.volume !== 'number') s.volume = 0.7;
@@ -733,6 +818,9 @@ function buildCard(it, ci, itemIdx, paletteIdx){
   const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = '✓';
   done.appendChild(dt); done.appendChild(bd);
 
+  if (it.timer > 0) addTrack(it, ci, card, go);
+  if (it.status === 'done' && it.onTime) addOnTime(card);
+
   go.addEventListener('click', function(){ onGo(ci, itemIdx, card, go); });
   done.addEventListener('click', function(){ onDone(ci, itemIdx, card, done); });
 
@@ -746,11 +834,43 @@ function onGo(ci, itemIdx, card, el){
     el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle');
     return;
   }
-  it.status = 'doing'; save();
+  it.status = 'doing';
+  if (it.timer > 0) it.timerStart = Date.now();
+  save();
   card.className = 'card state-doing';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
-  runVehicle(ci, el);
+  if (it.timer <= 0) runVehicle(ci, el);     // すなどけいの やることは えきに むかう でんしゃが その代わり
   playSelectedGo(ci);
+}
+// すなどけい:レールの左から えき(飛行機の子は🏁)に むかって it.timer びょうで すすむ
+function addTrack(it, ci, card, go){
+  const plane = isPlane(ci);
+  go.classList.add('has-track');
+  const tr = document.createElement('span'); tr.className = 'track';
+  const rail = document.createElement('span'); rail.className = 'rail';
+  const st = document.createElement('span'); st.className = 'station'; st.textContent = plane ? '🏁' : '🚉';
+  const rn = document.createElement('span'); rn.className = 'runner'; rn.textContent = plane ? '✈️' : '🚃';
+  rn.style.animationDuration = it.timer + 's';
+  if (it.status === 'doing' && it.timerStart){      // ひらきなおしても つづきから
+    const elapsed = (Date.now() - it.timerStart) / 1000;
+    rn.style.animationDelay = (-Math.min(elapsed, it.timer)) + 's';
+    if (elapsed >= it.timer) card.classList.add('arrived');
+  }
+  rn.addEventListener('animationend', function(){
+    if (it.status !== 'doing' || card.classList.contains('arrived')) return;
+    card.classList.add('arrived');
+    playArrive();
+  });
+  tr.appendChild(rail); tr.appendChild(st); tr.appendChild(rn);
+  go.appendChild(tr);
+}
+function addOnTime(card){
+  const b = document.createElement('span'); b.className = 'ontime'; b.textContent = '⭐ まにあった!';
+  card.appendChild(b);
+}
+function playArrive(){           // えきに ついた(やさしい とうちゃくチャイム。せかさない)
+  if (state.volume <= 0) return;
+  [[784,0],[659,.22],[523,.44],[659,.66]].forEach(function(n){ tone(n[0], n[1], 0.4, 'sine', 0.5); });
 }
 function runVehicle(ci, el){                  // のりものを1回だけ走らせて、走り終えたら消す
   const plane = isPlane(ci);
@@ -770,10 +890,17 @@ function onDone(ci, itemIdx, card, el){
     el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle');
     return;
   }
-  it.status = 'done'; save();
+  const onTime = it.timer > 0 && it.timerStart && Date.now() - it.timerStart < it.timer * 1000;   // でんしゃが つく前に できた
+  it.status = 'done';
+  if (onTime) it.onTime = true;
+  save();
   card.className = 'card state-done';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
   playSelectedDone();
+  if (onTime){
+    addOnTime(card);
+    setTimeout(function(){ if (state.volume > 0) DONE_SOUNDS.kirakira.play(); }, 500);
+  }
   const enabled = state.children[ci].items.filter(function(x){ return x.enabled !== false; });
   if (enabled.length && enabled.every(function(x){ return x.status === 'done'; })) setTimeout(celebrate, 600);
 }
@@ -851,7 +978,8 @@ function ensureNight(){
   if (!state.night || typeof state.night !== 'object') state.night = {};
   const n = state.night;
   if (typeof n.cups !== 'number') n.cups = 2;
-  if (n.date !== nightDayStr() || !Array.isArray(n.drunk)){ n.date = nightDayStr(); n.drunk = []; }   // 新しい夜 → おみずは満タンから
+  if (!Array.isArray(state.trains)) state.trains = [{ name:'でんしゃ A', photo:'' }, { name:'でんしゃ B', photo:'' }];
+  if (n.date !== nightDayStr() || !Array.isArray(n.drunk)){ n.date = nightDayStr(); n.drunk = []; n.kuji = null; }   // 新しい夜 → おみずは満タン・くじは まだ
   state.children.forEach(function(_, i){ if (typeof n.drunk[i] !== 'number') n.drunk[i] = 0; });
 }
 function playGulp(){             // ごくごく(コップを1つ使った)
@@ -866,11 +994,11 @@ function playSleepChime(){       // ねんねボタン(しずかな「ぽろん�
   if (state.volume <= 0) return;
   tone(784, 0, 0.6, 'sine', 0.45); tone(587, 0.3, 0.6, 'sine', 0.45); tone(392, 0.6, 1.2, 'sine', 0.45);
 }
-// こもりうた:ゆっくりの5音階。3回くりかえして(約50秒)しずかに終わる
-const LULLABY = { beat:0.55, pattern: [
+// こもりうた:ゆっくりの5音階。1回(約20秒)ながして しずかに終わる
+const LULLABY = { beat:0.62, times:1, pattern: [
   7,null,5,null, 6,5,3,null,  4,null,3,null, 2,null,null,null,
   3,null,5,null, 6,null,5,3,  4,3,2,null,    0,null,null,null
-]};                                                        // 32拍 × 0.55秒 = 17.6秒
+]};                                                        // 32拍 × 0.62秒 = 19.8秒(暗くなる20秒=#sleepStageのtransitionと そろえる)
 function playLullabyOnce(){
   const bus = musicBus(), beat = LULLABY.beat;
   LULLABY.pattern.forEach(function(deg, i){
@@ -887,7 +1015,7 @@ function startLullaby(){
   let count = 0;
   (function loop(){
     if (!musicPlaying) return;
-    if (count >= 3){ stopMusic(); return; }
+    if (count >= LULLABY.times){ stopMusic(); return; }
     count++;
     musicTimer = setTimeout(loop, playLullabyOnce() * 1000);
   })();
@@ -897,20 +1025,120 @@ const night = document.getElementById('night');
 const nightAwake = document.getElementById('nightAwake');
 const waterList = document.getElementById('waterList');
 const sleepStage = document.getElementById('sleepStage');
+const kujiBox = document.getElementById('kujiBox');
+const kujiSlots = document.getElementById('kujiSlots');
+const kujiBtn = document.getElementById('kujiBtn');
+const sleepBtns = document.getElementById('sleepBtns');
 let sleepTimers = [];
+let sleepPressed = [];
+let kujiSpinning = false;
 function openNight(){
   audio();
   ensureNight();
   if (musicPlaying) stopMusic();
   sleepStage.classList.add('hidden');
   nightAwake.classList.remove('hidden');
+  night.classList.remove('sleeping');
+  buildKuji();
   buildWater();
+  buildSleepBtns();
   night.classList.remove('hidden');
 }
 function closeNight(){
   sleepTimers.forEach(clearTimeout); sleepTimers = [];
   stopMusic();
   night.classList.add('hidden');
+}
+
+// ----- おやすみでんしゃ くじ(1ばんに1かいだけ。ひきなおしは できない) -----
+function trainFace(el, t){
+  el.innerHTML = '';
+  if (!t){ const q = document.createElement('span'); q.className = 'tem'; q.textContent = '❓'; el.appendChild(q); return; }
+  if (t.photo){ const img = document.createElement('img'); img.src = t.photo; img.alt = ''; el.appendChild(img); }
+  else { const em = document.createElement('span'); em.className = 'tem'; em.textContent = '🚃'; el.appendChild(em); }
+  const nm = document.createElement('span'); nm.className = 'tname'; nm.textContent = t.name;
+  el.appendChild(nm);
+}
+function buildKuji(){
+  kujiBox.classList.toggle('hidden', !state.trains.length);
+  kujiSlots.innerHTML = '';
+  const k = state.night.kuji;
+  state.children.forEach(function(child, ci){
+    const slot = document.createElement('div'); slot.className = 'slot';
+    const head = document.createElement('div'); head.className = 'slothead'; head.textContent = child.icon + ' ' + child.name;
+    const face = document.createElement('div'); face.className = 'slotface';
+    trainFace(face, k ? state.trains[k[ci]] : null);
+    slot.appendChild(head); slot.appendChild(face);
+    kujiSlots.appendChild(slot);
+  });
+  kujiBtn.classList.toggle('hidden', !!k);
+  kujiBtn.disabled = false;
+}
+function playTick(){ if (state.volume > 0) tone(1200, 0, 0.04, 'square', 0.2); }
+function drawKuji(){
+  if (kujiSpinning || state.night.kuji || !state.trains.length) return;
+  audio();
+  const n = state.trains.length;
+  const order = state.trains.map(function(_, i){ return i; });
+  for (let i = n - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t; }
+  const result = state.children.map(function(_, ci){ return order[ci % n]; });   // でんしゃが たりないときだけ おなじに なる
+  kujiSpinning = true; kujiBtn.disabled = true;
+  const faces = kujiSlots.querySelectorAll('.slotface');
+  const stopAt = state.children.map(function(_, ci){ return 2200 + ci * 900; });  // ひとりずつ じゅんばんに とまる
+  const t0 = performance.now();
+  let tick = 0;
+  (function spin(){
+    const t = performance.now() - t0;
+    let running = false;
+    faces.forEach(function(el, ci){
+      if (el.dataset.stopped) return;
+      if (t >= stopAt[ci]){
+        trainFace(el, state.trains[result[ci]]);
+        el.dataset.stopped = '1'; el.classList.add('pop');
+        if (state.volume > 0) DONE_SOUNDS.kirakira.play();
+        return;
+      }
+      running = true;
+      trainFace(el, state.trains[(tick + ci) % n]);
+    });
+    tick++;
+    if (running){ playTick(); setTimeout(spin, 90 + t / 25); }   // だんだん ゆっくりに なる
+    else {
+      state.night.kuji = result; save();
+      kujiSpinning = false;
+      kujiBtn.classList.add('hidden');
+    }
+  })();
+}
+kujiBtn.addEventListener('click', drawKuji);
+
+// ----- ねんねボタン(こどもごとに1つ。みんな押したら ねんね) -----
+function buildSleepBtns(){
+  sleepBtns.innerHTML = '';
+  sleepPressed = state.children.map(function(){ return false; });
+  state.children.forEach(function(child, ci){
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'sleepbtn';
+    const si = document.createElement('span'); si.className = 'si'; si.textContent = child.icon;
+    const sl = document.createElement('span'); sl.className = 'sl'; sl.textContent = 'ねんね 💤';
+    const ss = document.createElement('span'); ss.className = 'ss';
+    b.appendChild(si); b.appendChild(sl); b.appendChild(ss);
+    b.addEventListener('click', function(){ onSleepPress(ci, b); });
+    sleepBtns.appendChild(b);
+  });
+}
+function onSleepPress(ci, b){
+  audio();
+  if (sleepPressed[ci]){ b.classList.remove('wiggle'); void b.offsetWidth; b.classList.add('wiggle'); return; }
+  sleepPressed[ci] = true;
+  b.classList.add('on');
+  b.querySelector('.sl').textContent = 'ねんね ✓';
+  if (state.volume > 0){ tone(587, 0, 0.6, 'sine', 0.45); tone(784, 0.25, 0.8, 'sine', 0.45); }
+  if (sleepPressed.every(Boolean)){
+    sleepBtns.querySelectorAll('.ss').forEach(function(s){ s.textContent = 'おやすみ'; });
+    setTimeout(startSleep, 900);
+  } else {
+    b.querySelector('.ss').textContent = 'まってるよ';
+  }
 }
 function buildWater(){
   waterList.innerHTML = '';
@@ -968,7 +1196,8 @@ function startSleep(){
     const v = document.createElement('span'); v.textContent = c.icon;
     inside.appendChild(v);
   });
-  sleepStage.querySelectorAll('.star').forEach(function(e){ e.remove(); });
+  const stageInner = sleepStage.querySelector('.stageinner');   // ほしも いっしょに 暗くなるよう 中に入れる
+  stageInner.querySelectorAll('.star').forEach(function(e){ e.remove(); });
   for (let i = 0; i < 14; i++){
     const s = document.createElement('span'); s.className = 'star';
     s.textContent = i % 3 ? '✦' : '⭐';
@@ -977,19 +1206,21 @@ function startSleep(){
     s.style.fontSize = (12 + Math.random() * 14) + 'px';
     s.style.color = '#FFE9A8';
     s.style.animationDelay = (Math.random() * 2.4) + 's';
-    sleepStage.appendChild(s);
+    stageInner.appendChild(s);
   }
   sleepStage.classList.remove('dim');
   nightAwake.classList.add('hidden');
   sleepStage.classList.remove('hidden');
+  night.classList.add('sleeping');
   sleepTimers.forEach(clearTimeout);
   sleepTimers = [
-    setTimeout(startLullaby, 5000),                                          // シャッターが しまったら こもりうた
-    setTimeout(function(){ sleepStage.classList.add('dim'); }, 12000)       // そのあと30秒かけて ほぼ まっくらに
+    setTimeout(function(){                   // 5びょうで しゃこに入り シャッターが しまったら(約7秒)
+      startLullaby();                        // こもりうた(約20秒)を ながしながら
+      sleepStage.classList.add('dim');       // おなじ20秒で まっくらに する
+    }, 7000)
   ];
 }
 document.getElementById('moon').addEventListener('click', openNight);
-document.getElementById('sleepBtn').addEventListener('click', startSleep);
 // もどるは おとなだけ(✕を1びょう長押し)。こどもが さわっても もどらない
 const nightExit = document.getElementById('nightExit');
 let exitTimer = null;
@@ -1023,6 +1254,7 @@ function openPanel(){
   buildSoundPicker(document.getElementById('doneSoundPicker'), DONE_SOUNDS, 'done');
   buildMusicPicker();
   buildCupPicker();
+  buildTrainEditor();
   volEl.value = Math.round(state.volume * 100);
   panel.classList.remove('hidden');
 }
@@ -1080,9 +1312,10 @@ function buildTabs(){
 }
 function buildEditor(ci){
   editor.innerHTML = '';
-  state.children[ci].items.forEach(function(it, i){ addRow(it.emoji, it.label, i, it.enabled); });
+  state.children[ci].items.forEach(function(it, i){ addRow(it.emoji, it.label, i, it.enabled, it.timer); });
 }
-function addRow(em, lb, idx, enabled){
+const TIMER_CHOICES = [[0,'⏳なし'],[60,'⏳1ぷん'],[120,'⏳2ふん'],[180,'⏳3ぷん'],[300,'⏳5ふん']];
+function addRow(em, lb, idx, enabled, timer){
   const r = document.createElement('div');
   r.className = 'row';
   r.dataset.idx = (idx == null) ? '' : String(idx);   // 元の項目番号(状態は閉じるとき最新を参照)
@@ -1092,9 +1325,15 @@ function addRow(em, lb, idx, enabled){
   const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'enable'; cb.checked = enabled !== false;
   const tsl = document.createElement('span'); tsl.className = 'tslider';
   tgl.appendChild(cb); tgl.appendChild(tsl);
+  const tm = document.createElement('select'); tm.className = 'tm';
+  TIMER_CHOICES.forEach(function(c){
+    const o = document.createElement('option'); o.value = c[0]; o.textContent = c[1];
+    if (c[0] === (timer || 0)) o.selected = true;
+    tm.appendChild(o);
+  });
   const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '🗑';
   del.addEventListener('click', function(){ r.remove(); });
-  r.appendChild(ei); r.appendChild(li); r.appendChild(tgl); r.appendChild(del);
+  r.appendChild(ei); r.appendChild(li); r.appendChild(tm); r.appendChild(tgl); r.appendChild(del);
   editor.appendChild(r);
 }
 function commitEditorRows(ci){
@@ -1109,7 +1348,10 @@ function commitEditorRows(ci){
       emoji: r.querySelector('.em').value.trim() || '⭐',
       label: label,
       status: orig ? orig.status : 'todo',      // いまの状態を引き継ぐ(リセットが消えないように)
-      enabled: r.querySelector('.enable').checked
+      enabled: r.querySelector('.enable').checked,
+      timer: Number(r.querySelector('.tm').value),
+      timerStart: orig ? orig.timerStart : undefined,
+      onTime: orig ? orig.onTime : undefined
     });
   });
   if (items.length) state.children[ci].items = items;  // 全部消されていたら元のまま
@@ -1129,14 +1371,56 @@ function buildCupPicker(){
     container.appendChild(b);
   });
 }
-document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true); });
+// おやすみでんしゃの登録(変えたら その場で保存。今夜の くじは ひきなおしに なる)
+function shrinkPhoto(file, cb){                 // しゃしんを 240pxまで ちいさくして 端末に保存できる大きさにする
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = function(){
+    const s = Math.min(1, 240 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    cb(c.toDataURL('image/jpeg', 0.8));
+  };
+  img.onerror = function(){ URL.revokeObjectURL(url); };
+  img.src = url;
+}
+function trainsChanged(){ state.night.kuji = null; save(); }
+function buildTrainEditor(){
+  const box = document.getElementById('trainEditor');
+  box.innerHTML = '';
+  state.trains.forEach(function(t, i){
+    const r = document.createElement('div'); r.className = 'row';
+    const th = document.createElement('button'); th.type = 'button'; th.className = 'tthumb';
+    if (t.photo){ const img = document.createElement('img'); img.src = t.photo; img.alt = ''; th.appendChild(img); }
+    else th.textContent = '📷';
+    const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.className = 'hidden';
+    th.addEventListener('click', function(){ fi.click(); });
+    fi.addEventListener('change', function(){
+      if (!fi.files || !fi.files[0]) return;
+      shrinkPhoto(fi.files[0], function(data){ state.trains[i].photo = data; trainsChanged(); buildTrainEditor(); });
+    });
+    const ni = document.createElement('input'); ni.type = 'text'; ni.className = 'lb'; ni.value = t.name; ni.placeholder = 'でんしゃの なまえ';
+    ni.addEventListener('change', function(){ state.trains[i].name = ni.value.trim() || 'でんしゃ'; trainsChanged(); });
+    const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '🗑';
+    del.addEventListener('click', function(){ state.trains.splice(i, 1); trainsChanged(); buildTrainEditor(); });
+    r.appendChild(th); r.appendChild(fi); r.appendChild(ni); r.appendChild(del);
+    box.appendChild(r);
+  });
+}
+document.getElementById('addTrain').addEventListener('click', function(){
+  state.trains.push({ name:'でんしゃ', photo:'' }); trainsChanged(); buildTrainEditor();
+});
+document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true, 0); });
 volEl.addEventListener('input', function(){ state.volume = volEl.value / 100; });
 volEl.addEventListener('change', function(){ save(); });
 document.getElementById('test').addEventListener('click', function(){ audio(); playSelectedDone(); });
 const resetBtn = document.getElementById('reset');
 resetBtn.addEventListener('click', function(){
-  state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
-  state.night.drunk = state.children.map(function(){ return 0; });   // おやすみの おみずも もとにもどす
+  state.children.forEach(function(c){ c.items.forEach(resetItem); });
+  state.night.drunk = state.children.map(function(){ return 0; });   // おやすみの おみずと くじも もとにもどす
+  state.night.kuji = null;
   save(); render();
   resetBtn.textContent = 'リセットしました ✓';
   setTimeout(function(){ resetBtn.textContent = 'チェックを全部リセット'; }, 1500);
@@ -1157,7 +1441,7 @@ document.addEventListener('visibilitychange', function(){
     ac = null;
   }
   if (state.date !== todayStr()){
-    state.children.forEach(function(c){ c.items.forEach(function(x){ x.status = 'todo'; }); });
+    state.children.forEach(function(c){ c.items.forEach(resetItem); });
     save(); render();
   }
 });
