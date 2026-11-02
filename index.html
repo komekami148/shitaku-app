@@ -31,7 +31,8 @@
     .step.bounce, .step.wiggle, .card.state-doing .step.done, .card.state-done .step.done .badge,
     #celebrate .big, .confetti, #hint { animation:none; }
     .vehicle { display:none; }
-    .garage .inside span, .garage .shutter, .star { animation:none; }
+    .garage .inside span, .garage .shutter, .star, .lstation.next .sname { animation:none; }
+    #bigrun span { display:none; }
   }
 
   /* ===== 兄弟切り替え(上下スクロール) ===== */
@@ -135,26 +136,72 @@
   @keyframes fly { from{left:0; bottom:0; transform:translateX(-100%)} to{left:100%; bottom:65%; transform:translateX(0)} }
   @keyframes gatagoto { 0%{transform:translateY(0)} 100%{transform:translateY(-3px)} }
 
-  /* ===== すなどけい:⏳を設定した やることは「やる」で でんしゃが えきに むかって すすむ ===== */
-  .step.go.has-track { padding-bottom:clamp(34px, 9vw, 48px); }
-  .track { position:absolute; left:14px; right:14px; bottom:8px; height:clamp(30px, 8vw, 42px); pointer-events:none; }
-  .track .rail {
-    position:absolute; left:0; right:0; bottom:2px; height:4px; border-radius:2px;
-    background:repeating-linear-gradient(90deg, #C9B98A 0 10px, transparent 10px 16px);
+  /* ===== おきがえせん(ページ):ふたりの せんろが 左右に ならぶ。1まい きるごとに じぶんで つぎの えきへ ===== */
+  #line {
+    position:fixed; inset:0; z-index:45; background:#FDF6EC;
+    display:flex; flex-direction:column; gap:8px;
+    padding:calc(10px + env(safe-area-inset-top)) 10px calc(14px + env(safe-area-inset-bottom));
   }
-  .track .station { position:absolute; right:0; bottom:4px; font-size:clamp(24px, 7vw, 36px); line-height:1; }
-  .track .runner  { position:absolute; left:0;  bottom:4px; font-size:clamp(22px, 6.5vw, 34px); line-height:1; }
-  .card.state-todo .track { opacity:.45; }
-  .card.state-doing .track .runner { animation:approach linear forwards; }   /* 長さ(秒)は やることごとに JSで入れる */
-  .card.state-done .track { display:none; }
-  .card.arrived .track .station { animation:bounce .5s 3; }
-  @keyframes approach { from{left:0} to{left:calc(100% - 2.6em)} }
-  .ontime {
-    position:absolute; top:8px; right:10px; z-index:2;
-    font-size:clamp(14px, 4.2vw, 20px); font-weight:800; color:#E07A1F;
-    background:#FFF3C4; border-radius:999px; padding:4px 12px;
-    animation:pop .4s both; pointer-events:none;
+  .pagetitle { text-align:center; padding:6px 50px; font-size:clamp(20px, 6vw, 30px); font-weight:800; }
+  #lineCols { flex:1; min-height:0; display:flex; gap:10px; }
+  .lcol {
+    position:relative; overflow:hidden;
+    flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;
+    background:#fff; border:4px solid var(--c, #FFB7B2); border-radius:24px; padding:10px 6px;
   }
+  .lhead { text-align:center; font-size:clamp(17px, 5vw, 24px); font-weight:800; }
+  .ltrack { position:relative; flex:1; min-height:0; }
+  .ltrack .rail {
+    position:absolute; left:20px; width:8px; border-radius:4px;
+    background:repeating-linear-gradient(#C9B98A 0 12px, #E9DFC8 12px 18px);
+  }
+  .lstations { position:absolute; inset:0; display:flex; flex-direction:column; }
+  .lstation { flex:1; min-width:0; display:flex; align-items:center; gap:6px; padding-left:10px; }
+  .lstation .dot {
+    width:28px; height:28px; flex-shrink:0; border-radius:50%;
+    background:#fff; border:5px solid #C9B98A; position:relative; z-index:1;
+  }
+  .lstation .sname {                 /* 上=えもじ・下=なまえ(ほそい 列でも なまえが とちゅうで おれない) */
+    min-width:0; padding:4px 8px; border-radius:14px; line-height:1.15;
+    display:flex; flex-direction:column; align-items:flex-start;
+    font-size:clamp(13px, 3.8vw, 20px); font-weight:800; color:#C4BAAA;
+  }
+  .lstation .sname .se { font-size:1.5em; line-height:1; }
+  .lstation .sname .sn { white-space:nowrap; }
+  .lstation.ok .dot { background:#52B788; border-color:#52B788; }
+  .lstation.ok .sname { color:#2E7D4F; }
+  .lstation.next .dot { border-color:#FF8552; }
+  .lstation.next .sname { color:#4A4A4A; background:#FFE3D3; animation:invite 1.3s ease-in-out infinite; }
+  .ltrain {
+    position:absolute; left:24px; top:0; z-index:2; transform:translate(-50%, -50%);
+    font-size:clamp(30px, 9vw, 46px); line-height:1; pointer-events:none;
+    transition:top 1.8s cubic-bezier(.45,0,.4,1);
+  }
+  .ltrain.moving span { display:inline-block; animation:gatagoto .2s steps(2) infinite; }
+  .lgo {
+    appearance:none; border:none; cursor:pointer;
+    font:inherit; font-weight:800; font-size:clamp(20px, 6vw, 30px);
+    color:#fff; background:#52B788; border-radius:20px; padding:14px 4px;
+    box-shadow:0 5px 0 #2E7D4F;
+  }
+  .lgo:active { transform:translateY(4px); box-shadow:0 1px 0 #2E7D4F; }
+  .lgo:disabled { opacity:.45; }
+  .ldone {                           /* しゅうてんに ついた子の 列だけに でる(となりの子の じゃまを しない) */
+    position:absolute; inset:0; z-index:3;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+    background:rgba(234,249,236,.94); color:#2E7D4F;
+    font-size:clamp(22px, 7vw, 36px); font-weight:800; animation:pop .4s both;
+  }
+  .ldone .big { font-size:clamp(56px, 18vw, 96px); line-height:1; }
+  .lnone { margin:auto; text-align:center; font-size:15px; color:#AAA; padding:0 8px; }
+  /* しゅうてん:おおきな でんしゃが がめんいっぱいに はしりぬける */
+  #bigrun { position:fixed; inset:0; z-index:48; pointer-events:none; overflow:hidden; display:flex; align-items:center; }
+  #bigrun span {
+    position:absolute; left:0; white-space:nowrap; line-height:1;
+    font-size:min(30vw, 40vh);
+    animation:bigrun 2.4s cubic-bezier(.45,0,.6,1) forwards;
+  }
+  @keyframes bigrun { from{left:0; transform:translateX(-100%)} to{left:100%; transform:translateX(0)} }
 
   /* ===== ページ位置のドットとヒント ===== */
   #dots {
@@ -253,69 +300,43 @@
   #close { background:#52B788; color:#fff; font-size:20px; padding:16px; }
   #panel .chip.active { border-color:#6EC6FF; background:#EAF6FF; color:#2B6CB0; }   /* #panel button より強く(選んでいる音が わかるように) */
   #editor .row { padding:8px 0; border-bottom:1px dashed #EEE; }
-  #editor input.lb { flex:1 1 calc(100% - 80px); }   /* 1行目=えもじ+ことば、2行目=⏳・オンオフ・🗑 */
+  #editor input.lb { flex:1 1 calc(100% - 80px); }   /* 1行目=えもじ+ことば、2行目=しゅるい・オンオフ・🗑、3行目=えき */
+  #editor input.st { flex:1 1 100%; font-size:16px; }
   #panel select { font:inherit; font-size:16px; padding:8px; border:2px solid #DDD; border-radius:12px; background:#fff; color:#555; }
   #panel .hint { font-size:13px; color:#AAA; }
-  #panel .tthumb {
-    width:64px; height:64px; padding:0; flex-shrink:0; overflow:hidden;
-    border:2px solid #DDD; border-radius:12px; background:#F7F5F0;
-    display:flex; align-items:center; justify-content:center; font-size:26px;
-  }
-  #panel .tthumb img { width:100%; height:100%; object-fit:cover; }
 
-  /* ===== おやすみ(🌙で開く:おみずは決まった数だけ → ねんねで アプリも寝る) ===== */
-  #moon {
-    position:fixed; top:4px; left:6px; z-index:20;
-    appearance:none; border:none; background:none;
-    font-size:26px; padding:10px; opacity:.55; cursor:pointer;
+  /* ===== ページの きりかえ(☰を1びょう長押し → メニュー)。スワイプや ボタンでは ほかの ページに いけない ===== */
+  #menuBtn {
+    position:fixed; top:4px; left:6px; z-index:60;
+    appearance:none; border:none; background:none; color:#999;
+    font-size:24px; padding:10px; opacity:.4; cursor:pointer;
   }
+  body.sleeping #menuBtn { opacity:.06; }
+  #menu {
+    position:fixed; inset:0; z-index:90; background:rgba(253,246,236,.97);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px;
+  }
+  .menutitle { font-size:18px; font-weight:700; color:#999; }
+  #menu .mbtn {
+    width:min(80vw, 360px); appearance:none; cursor:pointer;
+    border:3px solid #E3D9C6; background:#fff; border-radius:20px; padding:16px;
+    font:inherit; font-size:24px; font-weight:800; color:#4A4A4A;
+  }
+  #menu .mbtn.active { border-color:#C0A060; background:#FCF3DE; }
+  #menuClose { appearance:none; border:none; background:none; cursor:pointer; font:inherit; font-size:16px; color:#999; padding:10px; }
+
+  /* ===== おみず・ねんね(ページ):おみずは決まった数だけ → ねんねで アプリも寝る ===== */
   #night {
     position:fixed; inset:0; z-index:40;
     background:#1E2340; color:#F3EBD3;
     overflow:hidden;
   }
-  #nightExit {
-    position:absolute; top:4px; right:6px; z-index:5;
-    appearance:none; border:none; background:none; color:#F3EBD3;
-    font-size:22px; padding:12px; opacity:.25; cursor:pointer;
-  }
-  #night.sleeping #nightExit { opacity:.08; }
   #nightAwake {
     height:100%; display:flex; flex-direction:column; align-items:center; gap:2vh;
     padding:calc(20px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
     overflow-y:auto;
   }
   .nighttitle { font-size:clamp(22px, 6.5vw, 36px); font-weight:800; }
-  /* おやすみでんしゃ くじ */
-  #kujiBox { width:100%; max-width:560px; display:flex; flex-direction:column; align-items:center; gap:10px; }
-  .nightsub { font-size:clamp(15px, 4.4vw, 20px); font-weight:700; color:#FFD98A; letter-spacing:.1em; }
-  #kujiSlots { width:100%; display:flex; gap:12px; }
-  .slot {
-    flex:1; min-width:0; background:#2C3359; border-radius:20px; padding:10px;
-    display:flex; flex-direction:column; align-items:center; gap:6px;
-  }
-  .slothead { font-size:clamp(16px, 4.8vw, 22px); font-weight:800; }
-  .slotface {
-    width:100%; height:clamp(90px, 26vw, 130px); overflow:hidden;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-    background:#1E2340; border-radius:14px;
-  }
-  .slotface img { width:100%; flex:1; min-height:0; object-fit:cover; }
-  .slotface .tem { font-size:clamp(34px, 10vw, 52px); line-height:1; }
-  .slotface .tname {
-    max-width:100%; padding:0 4px 4px;
-    font-size:clamp(13px, 3.8vw, 17px); font-weight:700;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .slotface.pop { animation:pop .4s both; }
-  #kujiBtn {
-    appearance:none; border:none; cursor:pointer;
-    font:inherit; font-weight:800; font-size:clamp(20px, 6vw, 30px);
-    color:#1E2340; background:#FFD98A; border-radius:999px; padding:10px 32px;
-    box-shadow:0 5px 0 #C9A24E;
-  }
-  #kujiBtn:active { transform:translateY(4px); box-shadow:0 1px 0 #C9A24E; }
-  #kujiBtn:disabled { opacity:.5; }
   #waterList { width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px; }
   .waterrow {
     position:relative; display:flex; align-items:center; gap:12px;
@@ -350,7 +371,9 @@
     pointer-events:none; animation:pop .35s both;
   }
   /* ねんねボタン:こどもごとに1つ。みんなが押したら ねんねが はじまる */
-  #sleepBtns { margin-top:auto; margin-bottom:2vh; width:100%; max-width:560px; display:flex; gap:14px; justify-content:center; }
+  .npage { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; gap:2vh; }
+  #sleepBtns { margin:auto 0; width:100%; max-width:560px; display:flex; gap:14px; justify-content:center; }
+  #sleepBtns .sleepbtn { padding:40px 8px; }
   .sleepbtn {
     flex:1; max-width:240px;
     appearance:none; border:none; cursor:pointer;
@@ -409,7 +432,15 @@
 <body>
 
 <button id="gear" aria-label="おとなの設定">⚙️</button>
-<button id="moon" aria-label="おやすみ">🌙</button>
+<button id="menuBtn" aria-label="ページを えらぶ(おとなは ながおし)">☰</button>
+<div id="menu" class="hidden">
+  <div class="menutitle">どの ページに する?</div>
+  <button class="mbtn" type="button" data-mode="shitaku">☀️ したく</button>
+  <button class="mbtn" type="button" data-mode="okigae">👕 おきがえせん</button>
+  <button class="mbtn" type="button" data-mode="water">🚰 おみず</button>
+  <button class="mbtn" type="button" data-mode="sleep">🌙 ねんね</button>
+  <button id="menuClose" type="button">とじる</button>
+</div>
 <div id="scroller"></div>
 <div id="dots"></div>
 <div id="hint" aria-hidden="true">⌄</div>
@@ -420,17 +451,22 @@
   <div class="big">⭐</div>
 </div>
 
+<div id="line" class="hidden">
+  <div class="pagetitle">👕 おきがえせん</div>
+  <div id="lineCols"></div>
+</div>
+<div id="bigrun" class="hidden"></div>
+
 <div id="night" class="hidden">
-  <button id="nightExit" aria-label="もどる(おとなは ながおし)">✕</button>
   <div id="nightAwake">
-    <div class="nighttitle">🌙 おやすみの じかん</div>
-    <div id="kujiBox">
-      <div class="nightsub">きょうの おやすみでんしゃ</div>
-      <div id="kujiSlots"></div>
-      <button id="kujiBtn" type="button">🎲 くじを ひく</button>
+    <div id="pageWater" class="npage">
+      <div class="nighttitle">🚰 おみずの じかん</div>
+      <div id="waterList"></div>
     </div>
-    <div id="waterList"></div>
-    <div id="sleepBtns"></div>
+    <div id="pageSleep" class="npage hidden">
+      <div class="nighttitle">🌙 ねんねの じかん</div>
+      <div id="sleepBtns"></div>
+    </div>
   </div>
   <div id="sleepStage" class="hidden">
     <div class="stageinner">
@@ -452,8 +488,8 @@
     <div class="childtabs" id="tabs"></div>
   </div>
   <div class="sec">
-    <div class="title">やること(えもじ・ことば・⏳すなどけい・オンオフ)</div>
-    <div class="hint">⏳を えらぶと「やる」を押したとき でんしゃが えきに むかって すすみます(おきがえ むけ)</div>
+    <div class="title">やること(えもじ・ことば・しゅるい・オンオフ)</div>
+    <div class="hint">「🚃おきがえせん」に すると、えき(「、」で くぎる)を 1つずつ じぶんで すすめる でんしゃに なります。えきの 先頭に えもじを つけられます</div>
     <div id="editor"></div>
     <button id="add">+ 追加</button>
   </div>
@@ -482,12 +518,6 @@
     <div class="chiprow" id="cupPicker"></div>
   </div>
   <div class="sec">
-    <div class="title">🌙 おやすみでんしゃ(くじで だれと ねるかを きめる)</div>
-    <div class="hint">📷を押して しゃしんを とると、じが よめなくても わかります</div>
-    <div id="trainEditor"></div>
-    <button id="addTrain">+ でんしゃを ふやす</button>
-  </div>
-  <div class="sec">
     <button id="reset">チェックを全部リセット</button>
   </div>
   <button id="close">保存して とじる</button>
@@ -506,10 +536,22 @@ function defaultItems(){
 function migrateItem(x){                      // 旧データ(done:真偽値/オンオフなし)からの引き継ぎ
   if (typeof x.status !== 'string') x.status = x.done ? 'done' : 'todo';
   if (typeof x.enabled !== 'boolean') x.enabled = true;
-  if (typeof x.timer !== 'number') x.timer = 0;   // すなどけいの秒数(0=なし)
-  delete x.done;
+  if (x.line && !Array.isArray(x.stations)) x.stations = DEFAULT_STATIONS.slice();
+  delete x.done; delete x.timer; delete x.timerStart; delete x.onTime;   // すなどけいは やめた(11/2)
 }
-function resetItem(x){ x.status = 'todo'; delete x.timerStart; delete x.onTime; }
+function resetItem(x){ x.status = 'todo'; delete x.step; }
+// おきがえせんの えき(先頭の えもじは がめんに だす・よみあげない)
+const DEFAULT_STATIONS = ['🌙ぱじゃまぬぐ', '🧷おむつかえる', '👕しゃつきる', '👖ずぼんはく'];
+function ensureLine(){           // はじめて この版を ひらいたとき、ふたりに おきがえせんを 1つずつ 入れる(けしたら もう入れない)
+  if (state.lineAdded) return;
+  state.children.forEach(function(c){
+    const it = c.items.find(function(x){ return /きがえ/.test(x.label); });   // もう「おきがえ」が あれば それを つかう
+    if (it){ it.line = true; it.stations = DEFAULT_STATIONS.slice(); }
+    else c.items.unshift({ emoji:'👕', label:'おきがえ', status:'todo', enabled:true, line:true, stations:DEFAULT_STATIONS.slice() });
+  });
+  state.lineAdded = true;
+  save();
+}
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -550,6 +592,7 @@ function load(){
 function save(){ state.date = todayStr(); try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
 let state = load();
 ensureNight();
+ensureLine();
 
 // ================= 効果音(Web Audioで生成・音源ファイル不要) =================
 // ▼ 音の種類はGO_SOUNDS/DONE_SOUNDSに追加すれば設定画面の選択肢が増える。ファンファーレはplayFanfareの中身を変更
@@ -790,7 +833,7 @@ function render(){
     const main = document.createElement('main'); main.className = 'cards';
     const enabledItems = child.items
       .map(function(it, idx){ return { it: it, idx: idx }; })
-      .filter(function(pair){ return pair.it.enabled !== false; });
+      .filter(function(pair){ return pair.it.enabled !== false && !pair.it.line; });   // おきがえせんは べつの ページ
     enabledItems.forEach(function(pair, pi){
       main.appendChild(buildCard(pair.it, ci, pair.idx, pi));
     });
@@ -818,9 +861,6 @@ function buildCard(it, ci, itemIdx, paletteIdx){
   const bd = document.createElement('span'); bd.className = 'badge'; bd.textContent = '✓';
   done.appendChild(dt); done.appendChild(bd);
 
-  if (it.timer > 0) addTrack(it, ci, card, go);
-  if (it.status === 'done' && it.onTime) addOnTime(card);
-
   go.addEventListener('click', function(){ onGo(ci, itemIdx, card, go); });
   done.addEventListener('click', function(){ onDone(ci, itemIdx, card, done); });
 
@@ -834,43 +874,11 @@ function onGo(ci, itemIdx, card, el){
     el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle');
     return;
   }
-  it.status = 'doing';
-  if (it.timer > 0) it.timerStart = Date.now();
-  save();
+  it.status = 'doing'; save();
   card.className = 'card state-doing';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
-  if (it.timer <= 0) runVehicle(ci, el);     // すなどけいの やることは えきに むかう でんしゃが その代わり
+  runVehicle(ci, el);
   playSelectedGo(ci);
-}
-// すなどけい:レールの左から えき(飛行機の子は🏁)に むかって it.timer びょうで すすむ
-function addTrack(it, ci, card, go){
-  const plane = isPlane(ci);
-  go.classList.add('has-track');
-  const tr = document.createElement('span'); tr.className = 'track';
-  const rail = document.createElement('span'); rail.className = 'rail';
-  const st = document.createElement('span'); st.className = 'station'; st.textContent = plane ? '🏁' : '🚉';
-  const rn = document.createElement('span'); rn.className = 'runner'; rn.textContent = plane ? '✈️' : '🚃';
-  rn.style.animationDuration = it.timer + 's';
-  if (it.status === 'doing' && it.timerStart){      // ひらきなおしても つづきから
-    const elapsed = (Date.now() - it.timerStart) / 1000;
-    rn.style.animationDelay = (-Math.min(elapsed, it.timer)) + 's';
-    if (elapsed >= it.timer) card.classList.add('arrived');
-  }
-  rn.addEventListener('animationend', function(){
-    if (it.status !== 'doing' || card.classList.contains('arrived')) return;
-    card.classList.add('arrived');
-    playArrive();
-  });
-  tr.appendChild(rail); tr.appendChild(st); tr.appendChild(rn);
-  go.appendChild(tr);
-}
-function addOnTime(card){
-  const b = document.createElement('span'); b.className = 'ontime'; b.textContent = '⭐ まにあった!';
-  card.appendChild(b);
-}
-function playArrive(){           // えきに ついた(やさしい とうちゃくチャイム。せかさない)
-  if (state.volume <= 0) return;
-  [[784,0],[659,.22],[523,.44],[659,.66]].forEach(function(n){ tone(n[0], n[1], 0.4, 'sine', 0.5); });
 }
 function runVehicle(ci, el){                  // のりものを1回だけ走らせて、走り終えたら消す
   const plane = isPlane(ci);
@@ -890,20 +898,170 @@ function onDone(ci, itemIdx, card, el){
     el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle');
     return;
   }
-  const onTime = it.timer > 0 && it.timerStart && Date.now() - it.timerStart < it.timer * 1000;   // でんしゃが つく前に できた
-  it.status = 'done';
-  if (onTime) it.onTime = true;
-  save();
+  it.status = 'done'; save();
   card.className = 'card state-done';
   el.classList.remove('bounce'); void el.offsetWidth; el.classList.add('bounce');
   playSelectedDone();
-  if (onTime){
-    addOnTime(card);
-    setTimeout(function(){ if (state.volume > 0) DONE_SOUNDS.kirakira.play(); }, 500);
-  }
-  const enabled = state.children[ci].items.filter(function(x){ return x.enabled !== false; });
+  const enabled = state.children[ci].items.filter(function(x){ return x.enabled !== false && !x.line; });
   if (enabled.length && enabled.every(function(x){ return x.status === 'done'; })) setTimeout(celebrate, 600);
 }
+
+// ================= おきがえせん(1まい きるごとに こどもが じぶんで でんしゃを つぎの えきへ すすめる) =================
+// えきに つくと 車内アナウンス(端末の よみあげ機能・音源ファイル不要)。しゅうてんで おおきな でんしゃが はしりぬける
+const EMOJI_HEAD = /^(\p{Extended_Pictographic}️?(‍\p{Extended_Pictographic}️?)*)/u;
+function splitStation(s){          // '👕しゃつきる' → { em:'👕', name:'しゃつきる' }
+  const m = s.match(EMOJI_HEAD);
+  return m ? { em:m[1], name:s.slice(m[1].length).trim() || s } : { em:'⭐', name:s.trim() };
+}
+function say(text){
+  if (!('speechSynthesis' in window) || state.volume <= 0) return;
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.15;
+    u.volume = Math.min(1, state.volume + 0.2);
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function playArrive(){             // えきに ついた(とうちゃくチャイム)
+  if (state.volume <= 0) return;
+  [[784,0],[659,.22],[523,.44],[659,.66]].forEach(function(n){ tone(n[0], n[1], 0.4, 'sine', 0.5); });
+}
+const lineEl = document.getElementById('line');
+const lineColsEl = document.getElementById('lineCols');
+const bigrun = document.getElementById('bigrun');
+const LINE_COLORS = ['#FFB7B2', '#B5EAD7', '#C7CEEA'];
+let lineCols = [];                 // こどもごとの 列 { ci, itemIdx, col, stations, train, go, moving }
+function nextText(st, step){       // 「つぎは、しゃつきる。」(さいごは しゅうてん)
+  const n = st[step];
+  if (!n) return '';
+  return (step === st.length - 1 ? 'つぎは しゅうてん、' : 'つぎは、') + n.name + '。';
+}
+function lineItemOf(c){ return state.children[c.ci].items[c.itemIdx]; }
+function buildLinePage(){          // おきがえせんの ページを ひらくたびに ふたりぶんの せんろを つくりなおす(すすみぐあいは のこる)
+  lineColsEl.innerHTML = '';
+  lineCols = [];
+  let anyStart = false;
+  state.children.forEach(function(child, ci){
+    const col = document.createElement('div'); col.className = 'lcol';
+    col.style.setProperty('--c', LINE_COLORS[ci % LINE_COLORS.length]);
+    const head = document.createElement('div'); head.className = 'lhead'; head.textContent = child.icon + ' ' + child.name;
+    col.appendChild(head);
+    lineColsEl.appendChild(col);
+    const itemIdx = child.items.findIndex(function(x){ return x.line && x.enabled !== false; });
+    if (itemIdx < 0){              // ⚙で「🚃おきがえせん」の やることが ない子
+      const none = document.createElement('div'); none.className = 'lnone';
+      none.textContent = '⚙の せっていで「🚃おきがえせん」を つくってね';
+      col.appendChild(none);
+      return;
+    }
+    const it = child.items[itemIdx];
+    const track = document.createElement('div'); track.className = 'ltrack';
+    const rail = document.createElement('div'); rail.className = 'rail';
+    const stations = document.createElement('div'); stations.className = 'lstations';
+    const train = document.createElement('span'); train.className = 'ltrain';
+    const tb = document.createElement('span'); tb.textContent = isPlane(ci) ? '✈️' : '🚃';
+    train.appendChild(tb);
+    const nodes = [{ em:'🚉', name:'しゅっぱつ' }].concat(it.stations.map(splitStation));
+    nodes.forEach(function(s){
+      const row = document.createElement('div'); row.className = 'lstation';
+      const dot = document.createElement('span'); dot.className = 'dot';
+      const nm = document.createElement('span'); nm.className = 'sname';
+      const se = document.createElement('span'); se.className = 'se'; se.textContent = s.em;
+      const sn = document.createElement('span'); sn.className = 'sn'; sn.textContent = s.name;
+      nm.appendChild(se); nm.appendChild(sn);
+      row.appendChild(dot); row.appendChild(nm);
+      stations.appendChild(row);
+    });
+    const edge = (50 / nodes.length) + '%';     // せんろは さいしょの えきから さいごの えきまで
+    rail.style.top = edge; rail.style.bottom = edge;
+    track.appendChild(rail); track.appendChild(stations); track.appendChild(train);
+    const go = document.createElement('button'); go.type = 'button'; go.className = 'lgo';
+    col.appendChild(track); col.appendChild(go);
+    const c = { ci:ci, itemIdx:itemIdx, col:col, stations:stations, train:train, go:go, moving:false };
+    lineCols.push(c);
+    go.addEventListener('click', function(){ onLineGo(c); });
+    markLine(c);
+    if (it.status === 'done') addLineDone(c);
+    else if (!(it.step > 0)) anyStart = true;
+  });
+  lineCols.forEach(function(c){ placeTrain(c, lineItemOf(c).step || 0, false); });
+  if (anyStart) say('おきがえせん、しゅっぱつ しんこう!');
+}
+function markLine(c){
+  const it = lineItemOf(c), step = it.step || 0, st = it.stations.map(splitStation);
+  Array.from(c.stations.children).forEach(function(row, k){
+    row.classList.toggle('ok', k <= step);
+    row.classList.toggle('next', k === step + 1);
+  });
+  const n = st[step];
+  c.go.textContent = n ? n.em + ' できた!' : '🏁 しゅうてん!';   // 空にすると ボタンが ちぢんで えきの 位置が ずれる
+  c.go.disabled = c.moving || !n;
+}
+function placeTrain(c, step, animate){
+  const row = c.stations.children[step];
+  if (!row) return;
+  if (!animate) c.train.style.transition = 'none';
+  c.train.style.top = (row.offsetTop + row.offsetHeight / 2) + 'px';
+  if (!animate){ void c.train.offsetWidth; c.train.style.transition = ''; }
+}
+function onLineGo(c){
+  if (c.moving) return;
+  audio();
+  const it = lineItemOf(c), st = it.stations.map(splitStation);
+  if ((it.step || 0) >= st.length) return;
+  it.step = (it.step || 0) + 1;
+  it.status = 'doing'; save();
+  c.moving = true; c.go.disabled = true;
+  if (state.volume > 0) playGatan();
+  c.train.classList.add('moving');
+  placeTrain(c, it.step, true);
+  setTimeout(function(){
+    c.train.classList.remove('moving');
+    c.moving = false;
+    playArrive();
+    const name = state.children[c.ci].name;
+    if (it.step >= st.length){                  // しゅうてん
+      it.status = 'done'; save();
+      markLine(c);
+      say(name + '、しゅうてん、' + st[st.length - 1].name + '。おきがえ、できました!');
+      setTimeout(function(){ finishLine(c); }, 2400);
+    } else {
+      markLine(c);
+      say(name + '、' + st[it.step - 1].name + '、できました。' + nextText(st, it.step));
+    }
+  }, 1800);
+}
+function finishLine(c){            // おおきな でんしゃ → その子の 列だけ「しゅうてん!」(となりの子は そのまま つづけられる)
+  bigRun(c.ci, function(){
+    playFanfare();
+    spawnConfetti();
+    addLineDone(c);
+  });
+}
+function addLineDone(c){
+  if (c.col.querySelector('.ldone')) return;
+  const d = document.createElement('div'); d.className = 'ldone';
+  const big = document.createElement('span'); big.className = 'big'; big.textContent = '🎉';
+  const msg = document.createElement('span'); msg.textContent = 'しゅうてん!';
+  d.appendChild(big); d.appendChild(msg);
+  c.col.appendChild(d);
+}
+function bigRun(ci, cb){           // がめんいっぱいの でんしゃ(飛行機の子は ✈️)が ファーンと はしりぬける
+  bigrun.innerHTML = '';
+  const s = document.createElement('span');
+  s.textContent = isPlane(ci) ? '✈️' : '🚃🚃🚃🚃';
+  bigrun.appendChild(s);
+  bigrun.classList.remove('hidden');
+  if (state.volume > 0){ playFuan(); setTimeout(playGatan, 300); }
+  let called = false;
+  function end(){ if (called) return; called = true; bigrun.classList.add('hidden'); bigrun.innerHTML = ''; cb(); }
+  s.addEventListener('animationend', end);
+  setTimeout(end, 2800);           // 念のため(アニメが止まった場合・へらす設定のとき)
+}
+window.addEventListener('resize', function(){   // よこむき などで えきが うごいたら あわせる
+  lineCols.forEach(function(c){ if (!c.moving) placeTrain(c, lineItemOf(c).step || 0, false); });
+});
 
 // ================= ページ位置のドット・ヒント =================
 const dotsEl = document.getElementById('dots');
@@ -978,8 +1136,8 @@ function ensureNight(){
   if (!state.night || typeof state.night !== 'object') state.night = {};
   const n = state.night;
   if (typeof n.cups !== 'number') n.cups = 2;
-  if (!Array.isArray(state.trains)) state.trains = [{ name:'でんしゃ A', photo:'' }, { name:'でんしゃ B', photo:'' }];
-  if (n.date !== nightDayStr() || !Array.isArray(n.drunk)){ n.date = nightDayStr(); n.drunk = []; n.kuji = null; }   // 新しい夜 → おみずは満タン・くじは まだ
+  delete state.trains; delete n.kuji;         // くじは やめた(11/2)。前の版で保存した しゃしんを 消して 容量を あける
+  if (n.date !== nightDayStr() || !Array.isArray(n.drunk)){ n.date = nightDayStr(); n.drunk = []; }   // 新しい夜 → おみずは満タンから
   state.children.forEach(function(_, i){ if (typeof n.drunk[i] !== 'number') n.drunk[i] = 0; });
 }
 function playGulp(){             // ごくごく(コップを1つ使った)
@@ -1025,92 +1183,9 @@ const night = document.getElementById('night');
 const nightAwake = document.getElementById('nightAwake');
 const waterList = document.getElementById('waterList');
 const sleepStage = document.getElementById('sleepStage');
-const kujiBox = document.getElementById('kujiBox');
-const kujiSlots = document.getElementById('kujiSlots');
-const kujiBtn = document.getElementById('kujiBtn');
 const sleepBtns = document.getElementById('sleepBtns');
 let sleepTimers = [];
 let sleepPressed = [];
-let kujiSpinning = false;
-function openNight(){
-  audio();
-  ensureNight();
-  if (musicPlaying) stopMusic();
-  sleepStage.classList.add('hidden');
-  nightAwake.classList.remove('hidden');
-  night.classList.remove('sleeping');
-  buildKuji();
-  buildWater();
-  buildSleepBtns();
-  night.classList.remove('hidden');
-}
-function closeNight(){
-  sleepTimers.forEach(clearTimeout); sleepTimers = [];
-  stopMusic();
-  night.classList.add('hidden');
-}
-
-// ----- おやすみでんしゃ くじ(1ばんに1かいだけ。ひきなおしは できない) -----
-function trainFace(el, t){
-  el.innerHTML = '';
-  if (!t){ const q = document.createElement('span'); q.className = 'tem'; q.textContent = '❓'; el.appendChild(q); return; }
-  if (t.photo){ const img = document.createElement('img'); img.src = t.photo; img.alt = ''; el.appendChild(img); }
-  else { const em = document.createElement('span'); em.className = 'tem'; em.textContent = '🚃'; el.appendChild(em); }
-  const nm = document.createElement('span'); nm.className = 'tname'; nm.textContent = t.name;
-  el.appendChild(nm);
-}
-function buildKuji(){
-  kujiBox.classList.toggle('hidden', !state.trains.length);
-  kujiSlots.innerHTML = '';
-  const k = state.night.kuji;
-  state.children.forEach(function(child, ci){
-    const slot = document.createElement('div'); slot.className = 'slot';
-    const head = document.createElement('div'); head.className = 'slothead'; head.textContent = child.icon + ' ' + child.name;
-    const face = document.createElement('div'); face.className = 'slotface';
-    trainFace(face, k ? state.trains[k[ci]] : null);
-    slot.appendChild(head); slot.appendChild(face);
-    kujiSlots.appendChild(slot);
-  });
-  kujiBtn.classList.toggle('hidden', !!k);
-  kujiBtn.disabled = false;
-}
-function playTick(){ if (state.volume > 0) tone(1200, 0, 0.04, 'square', 0.2); }
-function drawKuji(){
-  if (kujiSpinning || state.night.kuji || !state.trains.length) return;
-  audio();
-  const n = state.trains.length;
-  const order = state.trains.map(function(_, i){ return i; });
-  for (let i = n - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); const t = order[i]; order[i] = order[j]; order[j] = t; }
-  const result = state.children.map(function(_, ci){ return order[ci % n]; });   // でんしゃが たりないときだけ おなじに なる
-  kujiSpinning = true; kujiBtn.disabled = true;
-  const faces = kujiSlots.querySelectorAll('.slotface');
-  const stopAt = state.children.map(function(_, ci){ return 2200 + ci * 900; });  // ひとりずつ じゅんばんに とまる
-  const t0 = performance.now();
-  let tick = 0;
-  (function spin(){
-    const t = performance.now() - t0;
-    let running = false;
-    faces.forEach(function(el, ci){
-      if (el.dataset.stopped) return;
-      if (t >= stopAt[ci]){
-        trainFace(el, state.trains[result[ci]]);
-        el.dataset.stopped = '1'; el.classList.add('pop');
-        if (state.volume > 0) DONE_SOUNDS.kirakira.play();
-        return;
-      }
-      running = true;
-      trainFace(el, state.trains[(tick + ci) % n]);
-    });
-    tick++;
-    if (running){ playTick(); setTimeout(spin, 90 + t / 25); }   // だんだん ゆっくりに なる
-    else {
-      state.night.kuji = result; save();
-      kujiSpinning = false;
-      kujiBtn.classList.add('hidden');
-    }
-  })();
-}
-kujiBtn.addEventListener('click', drawKuji);
 
 // ----- ねんねボタン(こどもごとに1つ。みんな押したら ねんね) -----
 function buildSleepBtns(){
@@ -1211,7 +1286,7 @@ function startSleep(){
   sleepStage.classList.remove('dim');
   nightAwake.classList.add('hidden');
   sleepStage.classList.remove('hidden');
-  night.classList.add('sleeping');
+  document.body.classList.add('sleeping');
   sleepTimers.forEach(clearTimeout);
   sleepTimers = [
     setTimeout(function(){                   // 5びょうで しゃこに入り シャッターが しまったら(約7秒)
@@ -1220,13 +1295,48 @@ function startSleep(){
     }, 7000)
   ];
 }
-document.getElementById('moon').addEventListener('click', openNight);
-// もどるは おとなだけ(✕を1びょう長押し)。こどもが さわっても もどらない
-const nightExit = document.getElementById('nightExit');
-let exitTimer = null;
-nightExit.addEventListener('pointerdown', function(e){ e.preventDefault(); exitTimer = setTimeout(closeNight, 1000); });
+
+// ================= ページの きりかえ(☰を1びょう長押し → メニュー。スワイプや ボタンでは いけない) =================
+// えらんだ ページは ひらきなおしても のこる。朝4時を すぎたら「したく」に もどる
+const MODES = ['shitaku', 'okigae', 'water', 'sleep'];
+const menuEl = document.getElementById('menu');
+function showMode(mode){
+  if (MODES.indexOf(mode) < 0) mode = 'shitaku';
+  const prev = state.mode;
+  state.mode = mode; state.modeNight = nightDayStr(); save();
+  sleepTimers.forEach(clearTimeout); sleepTimers = [];          // ねんねの とちゅうで うつっても とめる
+  if (musicPlaying && (mode === 'water' || mode === 'sleep' || prev === 'sleep')) stopMusic();   // おしたくミュージックは したく⇔おきがえせん では ながしたまま
+  try{ speechSynthesis.cancel(); }catch(e){}
+  document.body.classList.remove('sleeping');
+  lineEl.classList.toggle('hidden', mode !== 'okigae');
+  night.classList.toggle('hidden', mode !== 'water' && mode !== 'sleep');
+  if (mode === 'okigae') buildLinePage(); else { lineColsEl.innerHTML = ''; lineCols = []; }
+  if (mode === 'water' || mode === 'sleep'){
+    ensureNight();
+    sleepStage.classList.add('hidden');
+    nightAwake.classList.remove('hidden');
+    document.getElementById('pageWater').classList.toggle('hidden', mode !== 'water');
+    document.getElementById('pageSleep').classList.toggle('hidden', mode !== 'sleep');
+    if (mode === 'water') buildWater(); else buildSleepBtns();
+  }
+}
+function startMode(){
+  const m = (state.modeNight === nightDayStr()) ? state.mode : 'shitaku';
+  showMode(m || 'shitaku');
+}
+function openMenu(){
+  Array.from(menuEl.querySelectorAll('.mbtn')).forEach(function(b){ b.classList.toggle('active', b.dataset.mode === state.mode); });
+  menuEl.classList.remove('hidden');
+}
+menuEl.querySelectorAll('.mbtn').forEach(function(b){
+  b.addEventListener('click', function(){ audio(); menuEl.classList.add('hidden'); showMode(b.dataset.mode); });
+});
+document.getElementById('menuClose').addEventListener('click', function(){ menuEl.classList.add('hidden'); });
+const menuBtn = document.getElementById('menuBtn');
+let menuTimer = null;
+menuBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); menuTimer = setTimeout(openMenu, 1000); });
 ['pointerup','pointerleave','pointercancel'].forEach(function(ev){
-  nightExit.addEventListener(ev, function(){ clearTimeout(exitTimer); });
+  menuBtn.addEventListener(ev, function(){ clearTimeout(menuTimer); });
 });
 
 // ================= おとなの設定(⚙を1.2秒長押しで開く) =================
@@ -1254,7 +1364,6 @@ function openPanel(){
   buildSoundPicker(document.getElementById('doneSoundPicker'), DONE_SOUNDS, 'done');
   buildMusicPicker();
   buildCupPicker();
-  buildTrainEditor();
   volEl.value = Math.round(state.volume * 100);
   panel.classList.remove('hidden');
 }
@@ -1312,10 +1421,9 @@ function buildTabs(){
 }
 function buildEditor(ci){
   editor.innerHTML = '';
-  state.children[ci].items.forEach(function(it, i){ addRow(it.emoji, it.label, i, it.enabled, it.timer); });
+  state.children[ci].items.forEach(function(it, i){ addRow(it.emoji, it.label, i, it.enabled, it.line, it.stations); });
 }
-const TIMER_CHOICES = [[0,'⏳なし'],[60,'⏳1ぷん'],[120,'⏳2ふん'],[180,'⏳3ぷん'],[300,'⏳5ふん']];
-function addRow(em, lb, idx, enabled, timer){
+function addRow(em, lb, idx, enabled, line, stations){
   const r = document.createElement('div');
   r.className = 'row';
   r.dataset.idx = (idx == null) ? '' : String(idx);   // 元の項目番号(状態は閉じるとき最新を参照)
@@ -1325,15 +1433,19 @@ function addRow(em, lb, idx, enabled, timer){
   const cb = document.createElement('input'); cb.type = 'checkbox'; cb.className = 'enable'; cb.checked = enabled !== false;
   const tsl = document.createElement('span'); tsl.className = 'tslider';
   tgl.appendChild(cb); tgl.appendChild(tsl);
-  const tm = document.createElement('select'); tm.className = 'tm';
-  TIMER_CHOICES.forEach(function(c){
+  const kind = document.createElement('select'); kind.className = 'kind';
+  [['', 'ふつう'], ['line', '🚃おきがえせん']].forEach(function(c){
     const o = document.createElement('option'); o.value = c[0]; o.textContent = c[1];
-    if (c[0] === (timer || 0)) o.selected = true;
-    tm.appendChild(o);
+    if (c[0] === (line ? 'line' : '')) o.selected = true;
+    kind.appendChild(o);
   });
+  const si = document.createElement('input'); si.type = 'text'; si.className = 'st';
+  si.value = (stations || DEFAULT_STATIONS).join('、'); si.placeholder = 'えき(「、」で くぎる)';
+  si.classList.toggle('hidden', !line);
+  kind.addEventListener('change', function(){ si.classList.toggle('hidden', kind.value !== 'line'); });
   const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '🗑';
   del.addEventListener('click', function(){ r.remove(); });
-  r.appendChild(ei); r.appendChild(li); r.appendChild(tm); r.appendChild(tgl); r.appendChild(del);
+  r.appendChild(ei); r.appendChild(li); r.appendChild(kind); r.appendChild(tgl); r.appendChild(del); r.appendChild(si);
   editor.appendChild(r);
 }
 function commitEditorRows(ci){
@@ -1344,15 +1456,24 @@ function commitEditorRows(ci){
     if (!label) return;                       // ことばが空の行は無視
     const idx = r.dataset.idx === '' ? null : Number(r.dataset.idx);
     const orig = idx != null ? state.children[ci].items[idx] : null;
-    items.push({
+    const line = r.querySelector('.kind').value === 'line';
+    const st = r.querySelector('.st').value.split(/[、,，]/).map(function(s){ return s.trim(); }).filter(Boolean);
+    const item = {
       emoji: r.querySelector('.em').value.trim() || '⭐',
       label: label,
       status: orig ? orig.status : 'todo',      // いまの状態を引き継ぐ(リセットが消えないように)
-      enabled: r.querySelector('.enable').checked,
-      timer: Number(r.querySelector('.tm').value),
-      timerStart: orig ? orig.timerStart : undefined,
-      onTime: orig ? orig.onTime : undefined
-    });
+      enabled: r.querySelector('.enable').checked
+    };
+    if (line){
+      item.line = true;
+      item.stations = st.length ? st : DEFAULT_STATIONS.slice();
+      const keep = orig && orig.line && orig.stations.join('、') === item.stations.join('、');
+      if (keep) item.step = orig.step;          // えきを かえたら おきがえは さいしょから
+      else if (item.status === 'doing') item.status = 'todo';
+    } else if (orig && orig.line && item.status === 'doing'){
+      item.status = 'todo';                     // おきがえせん → ふつうに もどしたら さいしょから
+    }
+    items.push(item);
   });
   if (items.length) state.children[ci].items = items;  // 全部消されていたら元のまま
 }
@@ -1371,56 +1492,14 @@ function buildCupPicker(){
     container.appendChild(b);
   });
 }
-// おやすみでんしゃの登録(変えたら その場で保存。今夜の くじは ひきなおしに なる)
-function shrinkPhoto(file, cb){                 // しゃしんを 240pxまで ちいさくして 端末に保存できる大きさにする
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = function(){
-    const s = Math.min(1, 240 / Math.max(img.width, img.height));
-    const c = document.createElement('canvas');
-    c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    URL.revokeObjectURL(url);
-    cb(c.toDataURL('image/jpeg', 0.8));
-  };
-  img.onerror = function(){ URL.revokeObjectURL(url); };
-  img.src = url;
-}
-function trainsChanged(){ state.night.kuji = null; save(); }
-function buildTrainEditor(){
-  const box = document.getElementById('trainEditor');
-  box.innerHTML = '';
-  state.trains.forEach(function(t, i){
-    const r = document.createElement('div'); r.className = 'row';
-    const th = document.createElement('button'); th.type = 'button'; th.className = 'tthumb';
-    if (t.photo){ const img = document.createElement('img'); img.src = t.photo; img.alt = ''; th.appendChild(img); }
-    else th.textContent = '📷';
-    const fi = document.createElement('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.className = 'hidden';
-    th.addEventListener('click', function(){ fi.click(); });
-    fi.addEventListener('change', function(){
-      if (!fi.files || !fi.files[0]) return;
-      shrinkPhoto(fi.files[0], function(data){ state.trains[i].photo = data; trainsChanged(); buildTrainEditor(); });
-    });
-    const ni = document.createElement('input'); ni.type = 'text'; ni.className = 'lb'; ni.value = t.name; ni.placeholder = 'でんしゃの なまえ';
-    ni.addEventListener('change', function(){ state.trains[i].name = ni.value.trim() || 'でんしゃ'; trainsChanged(); });
-    const del = document.createElement('button'); del.type = 'button'; del.className = 'del'; del.textContent = '🗑';
-    del.addEventListener('click', function(){ state.trains.splice(i, 1); trainsChanged(); buildTrainEditor(); });
-    r.appendChild(th); r.appendChild(fi); r.appendChild(ni); r.appendChild(del);
-    box.appendChild(r);
-  });
-}
-document.getElementById('addTrain').addEventListener('click', function(){
-  state.trains.push({ name:'でんしゃ', photo:'' }); trainsChanged(); buildTrainEditor();
-});
-document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true, 0); });
+document.getElementById('add').addEventListener('click', function(){ addRow('😀', '', null, true, false, null); });
 volEl.addEventListener('input', function(){ state.volume = volEl.value / 100; });
 volEl.addEventListener('change', function(){ save(); });
 document.getElementById('test').addEventListener('click', function(){ audio(); playSelectedDone(); });
 const resetBtn = document.getElementById('reset');
 resetBtn.addEventListener('click', function(){
   state.children.forEach(function(c){ c.items.forEach(resetItem); });
-  state.night.drunk = state.children.map(function(){ return 0; });   // おやすみの おみずと くじも もとにもどす
-  state.night.kuji = null;
+  state.night.drunk = state.children.map(function(){ return 0; });   // おやすみの おみずも もとにもどす
   save(); render();
   resetBtn.textContent = 'リセットしました ✓';
   setTimeout(function(){ resetBtn.textContent = 'チェックを全部リセット'; }, 1500);
@@ -1443,10 +1522,13 @@ document.addEventListener('visibilitychange', function(){
   if (state.date !== todayStr()){
     state.children.forEach(function(c){ c.items.forEach(resetItem); });
     save(); render();
+    if (state.mode === 'okigae') buildLinePage();
   }
+  if (state.modeNight !== nightDayStr()) showMode('shitaku');   // あさ4時を すぎて ひらいたら したくに もどる
 });
 
 render();
+startMode();
 </script>
 </body>
 </html>
