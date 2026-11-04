@@ -337,17 +337,20 @@
     overflow-y:auto;
   }
   .nighttitle { font-size:clamp(22px, 6.5vw, 36px); font-weight:800; }
-  #waterList { width:100%; max-width:560px; display:flex; flex-direction:column; gap:14px; }
+  /* ふたりの コップは 画面の 上の はしと 下の はしに わける(となりの子の コップを まちがえて おさない) */
+  #waterList { flex:1; width:100%; max-width:560px; display:flex; flex-direction:column; justify-content:space-between; align-items:stretch; gap:24px; }
+  #waterList .nighttitle { text-align:center; opacity:.8; }
+  #pageWater { padding-top:36px; }            /* ☰に かからない */
   .waterrow {
-    position:relative; display:flex; align-items:center; gap:12px;
-    background:#2C3359; border-radius:24px; padding:14px 16px;
+    position:relative; display:flex; flex-wrap:wrap; align-items:center; gap:12px;
+    background:#2C3359; border-radius:24px; padding:18px 16px;
   }
   .waterrow.wiggle { animation:wiggle .3s; }
   .waterrow .who {
-    flex:1; min-width:0; display:flex; align-items:center; gap:6px;
-    font-size:clamp(20px, 6vw, 30px); font-weight:800;
+    flex:1 0 auto; display:flex; align-items:center; gap:6px;
+    font-size:clamp(20px, 6vw, 30px); font-weight:800; white-space:nowrap;
   }
-  .cups { display:flex; gap:14px; }
+  .cups { display:flex; gap:14px; margin-left:auto; }   /* せまいときは 名前の 下に おりる */
   .cup {
     appearance:none; cursor:pointer; padding:0;
     position:relative; overflow:hidden;
@@ -460,7 +463,6 @@
 <div id="night" class="hidden">
   <div id="nightAwake">
     <div id="pageWater" class="npage">
-      <div class="nighttitle">🚰 おみずの じかん</div>
       <div id="waterList"></div>
     </div>
     <div id="pageSleep" class="npage hidden">
@@ -907,21 +909,80 @@ function onDone(ci, itemIdx, card, el){
 }
 
 // ================= おきがえせん(1まい きるごとに こどもが じぶんで でんしゃを つぎの えきへ すすめる) =================
-// えきに つくと 車内アナウンス(端末の よみあげ機能・音源ファイル不要)。しゅうてんで おおきな でんしゃが はしりぬける
+// えきに つくと 車内アナウンス(車掌さんの声)。しゅうてんで おおきな でんしゃが はしりぬける
 const EMOJI_HEAD = /^(\p{Extended_Pictographic}️?(‍\p{Extended_Pictographic}️?)*)/u;
 function splitStation(s){          // '👕しゃつきる' → { em:'👕', name:'しゃつきる' }
   const m = s.match(EMOJI_HEAD);
   return m ? { em:m[1], name:s.slice(m[1].length).trim() || s } : { em:'⭐', name:s.trim() };
 }
-function say(text){
-  if (!('speechSynthesis' in window) || state.volume <= 0) return;
-  try{
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.15;
-    u.volume = Math.min(1, state.volume + 0.2);
-    speechSynthesis.speak(u);
-  }catch(e){}
+// ▼ 車内アナウンスの声(ElevenLabsで前もって作った voice/ の音のファイル)。文が この表に あれば その声、
+//   なければ(⚙で 名前や えきを かえたとき) 端末の よみあげ。作りなおしは tools/make-voice.py
+const VOICE_FILES = {"ご乗車ありがとうございます。この電車は、おきがえせん、ずぼんはく行きです。": "voice/start.mp3","みずき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k0-1.mp3","みずき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k0-2.mp3","みずき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k0-3.mp3","みずき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k0-end.mp3","たつき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k1-1.mp3","たつき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k1-2.mp3","たつき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k1-3.mp3","たつき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k1-end.mp3"};
+const voiceBufs = {};
+let voiceQueue = [], voiceSrc = null, voiceGen = 0;
+function loadVoice(text){            // 音のファイルを よみこんでおく(おなじ文は 1かいだけ)
+  const f = VOICE_FILES[text];
+  if (!f) return Promise.resolve(null);
+  if (!voiceBufs[f]){
+    voiceBufs[f] = fetch(f).then(function(r){ if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(function(b){ return new Promise(function(ok, ng){ audio().decodeAudioData(b, ok, ng); }); })
+      .catch(function(){ delete voiceBufs[f]; return null; });
+  }
+  return voiceBufs[f];
+}
+function announce(text, done){       // じゅんばんに ながす(ふたりが つづけて おしても とちゅうで きれない)
+  voiceQueue.push({ text:text, done:done });
+  if (voiceQueue.length === 1 && !voiceSrc) playNextVoice();
+}
+function playNextVoice(){
+  const v = voiceQueue[0];
+  if (!v) return;
+  const gen = voiceGen;
+  let ended = false;
+  function finish(){
+    if (ended || gen !== voiceGen) return;
+    ended = true; voiceSrc = null; voiceQueue.shift();
+    if (v.done) v.done();
+    playNextVoice();
+  }
+  if (state.volume <= 0){ finish(); return; }
+  voiceSrc = true;                   // よみこみ中も「ながしている」あつかい
+  loadVoice(v.text).then(function(buf){
+    if (gen !== voiceGen) return;
+    if (buf){
+      const a = audio(), src = a.createBufferSource(), g = a.createGain();
+      src.buffer = buf;
+      g.gain.value = Math.min(1, state.volume + 0.2);
+      src.connect(g); g.connect(a.destination);
+      src.onended = finish;
+      voiceSrc = src;
+      src.start();
+      return;
+    }
+    if (!('speechSynthesis' in window)){ finish(); return; }
+    try{
+      const u = new SpeechSynthesisUtterance(v.text.replace(/〜/g, ''));
+      u.lang = 'ja-JP'; u.rate = 0.9; u.pitch = 1.15;
+      u.volume = Math.min(1, state.volume + 0.2);
+      u.onend = finish; u.onerror = finish;
+      speechSynthesis.speak(u);
+      setTimeout(finish, 15000);     // onend が こない 端末への そなえ
+    }catch(e){ finish(); }
+  });
+}
+function cancelVoice(){              // ページを うつるときは とめる(のこりも すてる)
+  voiceGen++;
+  if (voiceSrc && voiceSrc !== true){ try{ voiceSrc.onended = null; voiceSrc.stop(); }catch(e){} }
+  voiceSrc = null; voiceQueue = [];
+  try{ speechSynthesis.cancel(); }catch(e){}
+}
+function annStart(goal){ return 'ご乗車ありがとうございます。この電車は、おきがえせん、' + goal + '行きです。'; }
+function annStation(name, st, step){ // 「みずき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。」
+  const n = st[step].name;
+  return name + '号、' + st[step - 1].name + '駅、とうちゃくです。つぎは〜、' + (step === st.length - 1 ? 'しゅうてん、' : '') + n + '〜、' + n + '〜。';
+}
+function annEnd(name, st){
+  return name + '号、しゅうてん、' + st[st.length - 1].name + '〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。';
 }
 function playArrive(){             // えきに ついた(とうちゃくチャイム)
   if (state.volume <= 0) return;
@@ -932,11 +993,6 @@ const lineColsEl = document.getElementById('lineCols');
 const bigrun = document.getElementById('bigrun');
 const LINE_COLORS = ['#FFB7B2', '#B5EAD7', '#C7CEEA'];
 let lineCols = [];                 // こどもごとの 列 { ci, itemIdx, col, stations, train, go, moving }
-function nextText(st, step){       // 「つぎは、しゃつきる。」(さいごは しゅうてん)
-  const n = st[step];
-  if (!n) return '';
-  return (step === st.length - 1 ? 'つぎは しゅうてん、' : 'つぎは、') + n.name + '。';
-}
 function lineItemOf(c){ return state.children[c.ci].items[c.itemIdx]; }
 function buildLinePage(){          // おきがえせんの ページを ひらくたびに ふたりぶんの せんろを つくりなおす(すすみぐあいは のこる)
   lineColsEl.innerHTML = '';
@@ -985,8 +1041,17 @@ function buildLinePage(){          // おきがえせんの ページを ひら�
     if (it.status === 'done') addLineDone(c);
     else if (!(it.step > 0)) anyStart = true;
   });
-  lineCols.forEach(function(c){ placeTrain(c, lineItemOf(c).step || 0, false); });
-  if (anyStart) say('おきがえせん、しゅっぱつ しんこう!');
+  lineCols.forEach(function(c){
+    placeTrain(c, lineItemOf(c).step || 0, false);
+    const it = lineItemOf(c), st = it.stations.map(splitStation), name = state.children[c.ci].name;
+    for (let k = 1; k < st.length; k++) loadVoice(annStation(name, st, k));   // さきに よみこんで すぐ ながせるように
+    loadVoice(annEnd(name, st));
+  });
+  if (anyStart){
+    const first = lineCols.find(function(c){ return !(lineItemOf(c).step > 0); });
+    const st = lineItemOf(first).stations.map(splitStation);
+    announce(annStart(st[st.length - 1].name));
+  }
 }
 function markLine(c){
   const it = lineItemOf(c), step = it.step || 0, st = it.stations.map(splitStation);
@@ -1021,14 +1086,14 @@ function onLineGo(c){
     c.moving = false;
     playArrive();
     const name = state.children[c.ci].name;
-    if (it.step >= st.length){                  // しゅうてん
+    if (it.step >= st.length){                  // しゅうてん(アナウンスが おわってから おおきな でんしゃ)
       it.status = 'done'; save();
       markLine(c);
-      say(name + '、しゅうてん、' + st[st.length - 1].name + '。おきがえ、できました!');
-      setTimeout(function(){ finishLine(c); }, 2400);
+      setTimeout(function(){ announce(annEnd(name, st), function(){ finishLine(c); }); }, 900);
     } else {
       markLine(c);
-      say(name + '、' + st[it.step - 1].name + '、できました。' + nextText(st, it.step));
+      const text = annStation(name, st, it.step);
+      setTimeout(function(){ announce(text); }, 900);   // チャイムの あとに
     }
   }, 1800);
 }
@@ -1232,6 +1297,10 @@ function buildWater(){
     }
     row.appendChild(who); row.appendChild(cups);
     waterList.appendChild(row);
+    if (ci === 0){                   // だいめいは ふたりの あいだ(ここは おしても なにも おきない)
+      const t = document.createElement('div'); t.className = 'nighttitle'; t.textContent = '🚰 おみずの じかん';
+      waterList.appendChild(t);
+    }
     updateCups(ci, row);
     if (state.night.drunk[ci] >= state.night.cups) addClosedSign(row);
   });
@@ -1306,7 +1375,7 @@ function showMode(mode){
   state.mode = mode; state.modeNight = nightDayStr(); save();
   sleepTimers.forEach(clearTimeout); sleepTimers = [];          // ねんねの とちゅうで うつっても とめる
   if (musicPlaying && (mode === 'water' || mode === 'sleep' || prev === 'sleep')) stopMusic();   // おしたくミュージックは したく⇔おきがえせん では ながしたまま
-  try{ speechSynthesis.cancel(); }catch(e){}
+  cancelVoice();
   document.body.classList.remove('sleeping');
   lineEl.classList.toggle('hidden', mode !== 'okigae');
   night.classList.toggle('hidden', mode !== 'water' && mode !== 'sleep');
