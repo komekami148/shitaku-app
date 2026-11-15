@@ -196,9 +196,7 @@
   .lnone { margin:auto; text-align:center; font-size:15px; color:#AAA; padding:0 8px; }
   /* しゅうてん:おおきな でんしゃが がめんいっぱいに はしりぬける */
   #bigrun { position:fixed; inset:0; z-index:48; pointer-events:none; overflow:hidden; display:flex; align-items:center; }
-  #bigrun { --th:min(22vw, 30vh); }
-  #bigrun .tr { top:50%; animation:bigrun 2.8s cubic-bezier(.45,0,.6,1) both; }
-  @keyframes bigrun { from{left:100%; transform:translate(0, -50%)} to{left:0; transform:translate(-100%, -50%)} }
+  #bigrun .tr { top:50%; }
   /* とうえんせんの しゅうてん:がめんいっぱいの ふみきり(ランプ・しゃだんき・とおる でんしゃ) */
   #crossing {
     position:fixed; inset:0; z-index:48; overflow:hidden;
@@ -212,15 +210,13 @@
     background:repeating-linear-gradient(90deg, #6B5A45 0 14px, #8C7A60 14px 34px);
     border-top:5px solid #888; border-bottom:5px solid #888;
   }
-  /* でんしゃの え(いらすとや)を つないだ れっしゃ。--th = 車両 1りょうぶんの たかさ。絵は みんな ひだり むき → みぎから ひだりへ はしる */
-  .tr { position:absolute; left:0; display:flex; align-items:flex-end; line-height:0; white-space:nowrap; pointer-events:none; }
-  .tr .jig { display:flex; align-items:flex-end; gap:2px; animation:gatagoto .2s steps(2) infinite; }
+  /* でんしゃの え(いらすとや)を つないだ れっしゃ。大きさと うごきは JS(runTrain)で px で きめる。絵は みんな ひだり むき → みぎから ひだりへ はしる */
+  .tr { position:absolute; left:0; display:flex; align-items:flex-end; line-height:0; white-space:nowrap; pointer-events:none; will-change:transform; }
+  .tr .jig { display:flex; flex-shrink:0; align-items:flex-end; gap:2px; animation:gatagoto .2s steps(2) infinite; }
   .tr.fast .jig { animation-duration:.1s; }
   .tr img { display:block; flex-shrink:0; }
   .tr img.flip { transform:scaleX(-1); }       /* しんかんせんの うしろの 先頭車 */
-  #crossing { --th:min(24vw, 20vh); }
-  .xtrain { top:calc(58% + 4px); transform:translate(0, -100%); }      /* 車輪を せんろの うえに のせる */
-  @keyframes xpassR { from{left:100%; transform:translate(0, -100%)} to{left:0; transform:translate(-100%, -100%)} }
+  .xtrain { top:calc(58% + 4px); }              /* 車輪を せんろの うえに のせる(たては translate -100%) */
   .xpost {
     position:absolute; left:10%; top:18%; bottom:22%; width:min(30vw, 160px);
     display:flex; flex-direction:column; align-items:center; z-index:2;
@@ -295,10 +291,11 @@
 
   /* ===== おとなの設定(⚙長押しで開く) ===== */
   #gear {
-    position:fixed; top:4px; right:6px; z-index:20;
+    position:fixed; top:4px; right:6px; z-index:61;     /* どの ページでも いちばん まえ(☰ と おなじ たかさ) */
     appearance:none; border:none; background:none;
     font-size:24px; padding:10px; opacity:.3; cursor:pointer;
   }
+  body.sleeping #gear { opacity:.06; }
   #panel {
     position:fixed; inset:0; z-index:100;
     background:#FFF; overflow-y:auto;
@@ -1225,17 +1222,21 @@ function addLineDone(c){
   c.col.appendChild(d);
 }
 function bigRun(ci, cb){           // がめんいっぱいの でんしゃ(ふつうの でんしゃ か しんかんせん)が ファーンと はしりぬける(11/13 から 飛行機の子も でんしゃ)
+  const my = ++bigRunGen;          // あとから べつの 子の でんしゃが きたら、まえの 子の おわりで けさない
   bigrun.innerHTML = '';
-  const cars = Math.random() < 0.5 ? [car(pickOne(FUTSUU_COLORS), 1.2)] : shinkansenCars(pickOne(SHINKANSEN), 1);
-  const s = makeTrainEl(cars, false);
-  bigrun.appendChild(s);
   bigrun.classList.remove('hidden');
-  if (state.volume > 0){ playFuan(); setTimeout(playGatan, 300); }
-  let called = false;
-  function end(){ if (called) return; called = true; bigrun.classList.add('hidden'); bigrun.innerHTML = ''; cb(); }
-  s.addEventListener('animationend', end);
-  setTimeout(end, 3200);           // 念のため(アニメが止まった場合・へらす設定のとき)
+  const cars = Math.random() < 0.5 ? [car(pickOne(FUTSUU_COLORS), 1.2)] : shinkansenCars(pickOne(SHINKANSEN), 1);
+  waitTrainImgs(cars, 1500).then(function(){
+    if (my !== bigRunGen) return;
+    if (state.volume > 0){ playFuan(); setTimeout(playGatan, 300); }
+    const H = Math.min(window.innerWidth * 0.22, window.innerHeight * 0.30);
+    return runTrain(bigrun, cars, { H:H, sec:2.8, y:'-50%', easing:'cubic-bezier(.45,0,.6,1)' });
+  }).then(function(){
+    if (my === bigRunGen){ bigrun.classList.add('hidden'); bigrun.innerHTML = ''; }
+    cb();
+  });
 }
+let bigRunGen = 0;
 // ----- ふみきり(とうえんせんの しゅうてん):カンカン → しゃだんきが おりる → でんしゃが とおる → あがったら しゅっぱつ -----
 const crossingEl = document.getElementById('crossing');
 const xmsg = document.getElementById('xmsg');
@@ -1289,26 +1290,74 @@ function pickXtrain(){
   t.key = k; t.sec = XTRAINS[k].sec; t.sound = XTRAINS[k].sound; t.fast = !!XTRAINS[k].fast;
   return t;
 }
-function makeTrainEl(cars, fast){    // 絵を つないで 1ぽんの れっしゃに する(たかさは --th × h)
+// 絵の よこ÷たて(余白を 切った あとの 大きさ)。はばを さきに きめておけば、絵の よみこみが おそくても れっしゃの ながさが くるわない
+const IMG_RATIO = {
+  doctoryellow:739/195, doctoryellow_chukan:680/231,
+  shinkansen_e5_hayabusa:768/213, shinkansen_e5_hayabusa_chukan:757/254,
+  shinkansen_e6_superkomachi:768/213, shinkansen_e6_superkomachi_chukan:757/253,
+  shinkansen_e7_w7:764/184, shinkansen_e7_w7_chukan:775/248,
+  shinkansen_n700_mizuho_sakura:750/198, shinkansen_n700_mizuho_sakura2:726/245,
+  train_kamotsu_ressya:757/155, train_kamotsu_ressya_kamotsu:400/247,
+  train_kikansya_kemuri:763/693, train_toyama_light_rail_transit:781/256
+};
+FUTSUU_COLORS.forEach(function(f){ IMG_RATIO[f] = 783/258; });
+const CAR_GAP = 2;
+function carW(c, H){ return H * c.h * (IMG_RATIO[c.f] || 3); }
+function makeTrainEl(cars, fast, H){ // 絵を つないで 1ぽんの れっしゃに する(H = 1りょうぶんの たかさ px)
   const tr = document.createElement('div'); tr.className = 'tr' + (fast ? ' fast' : '');
   const jig = document.createElement('div'); jig.className = 'jig';
   cars.forEach(function(c){
     const im = document.createElement('img');
     im.src = 'img/' + c.f + '.webp'; im.alt = '';
-    im.style.height = 'calc(var(--th) * ' + c.h + ')';
+    im.style.height = (H * c.h) + 'px'; im.style.width = carW(c, H) + 'px';
     if (c.flip) im.className = 'flip';
     jig.appendChild(im);
   });
   tr.appendChild(jig);
   return tr;
 }
-let trainImgsLoaded = false;
+const trainImgs = {};                // よみこんだ 絵(すてずに もっておく)
+function loadTrainImg(f){
+  if (!trainImgs[f]){
+    const im = new Image(); im.src = 'img/' + f + '.webp';
+    trainImgs[f] = { im:im, ready:(im.decode ? im.decode() : Promise.resolve()).catch(function(){}) };
+  }
+  return trainImgs[f].ready;
+}
+function waitTrainImgs(cars, ms){    // その れっしゃの 絵が じゅんびできるまで まつ(さいだい ms)
+  return Promise.race([
+    Promise.all(cars.map(function(c){ return loadTrainImg(c.f); })),
+    new Promise(function(ok){ setTimeout(ok, ms); })
+  ]);
+}
 function preloadTrainImgs(){         // 線路の ページを ひらいたら さきに よみこむ(ふみきりで すぐ でるように)
-  if (trainImgsLoaded) return;
-  trainImgsLoaded = true;
   const fs = FUTSUU_COLORS.concat(['train_kikansya_kemuri', 'train_kamotsu_ressya', 'train_kamotsu_ressya_kamotsu', 'train_toyama_light_rail_transit', 'doctoryellow', 'doctoryellow_chukan']);
   SHINKANSEN.forEach(function(s){ fs.push(s.head, s.mid); });
-  fs.forEach(function(f){ const im = new Image(); im.src = 'img/' + f + '.webp'; });
+  fs.forEach(loadTrainImg);
+}
+// れっしゃを みぎの そとから ひだりの そとまで はしらせる。おわったら(=さいごの 車両が でたら) done
+//   時計で きめうちせず、うごきの「おわった」で つぎへ すすむ(iPhone で はしりだしが おくれても とちゅうで きえない)
+function runTrain(box, cars, o){     // o: { H, sec, fast, y:'-100%'|'-50%', easing, cls }
+  const W = cars.reduce(function(s, c){ return s + carW(c, o.H); }, 0) + CAR_GAP * (cars.length - 1);
+  const from = box.clientWidth || window.innerWidth;
+  const tr = makeTrainEl(cars, o.fast, o.H);
+  if (o.cls) tr.classList.add(o.cls);
+  const p0 = 'translate(' + from + 'px, ' + o.y + ')', p1 = 'translate(' + (-W - 10) + 'px, ' + o.y + ')';
+  tr.style.transform = p0;
+  box.appendChild(tr);
+  return new Promise(function(done){
+    let fin = false;
+    function end(){ if (fin) return; fin = true; done(tr); }
+    if (!tr.animate){                // ふるい 端末:CSS の うごきで
+      tr.style.transition = 'transform ' + o.sec + 's ' + (o.easing || 'linear');
+      void tr.offsetWidth; tr.style.transform = p1;
+      tr.addEventListener('transitionend', end);
+    } else {
+      const a = tr.animate([{ transform:p0 }, { transform:p1 }], { duration:o.sec * 1000, easing:o.easing || 'linear', fill:'forwards' });
+      a.onfinish = end;
+    }
+    setTimeout(end, o.sec * 1000 + 5000);   // 念のため(画面が うらに まわって うごきが とまった とき など)
+  });
 }
 // でんしゃごとの おと(at は ふみきりの タイマー。ページを うつると まとめて とまる)
 function soundFutsuu(at, sec){       // ファーン + ガタンゴトン
@@ -1360,24 +1409,31 @@ function nextCrossing(){
   crossingEl.classList.add('on');                               // ランプが こうごに ひかる
   playKan(); kankanTimer = setInterval(playKan, 480);
   function at(ms, fn){ crossingTimers.push(setTimeout(fn, ms)); }
+  const gen = ++crossingGen;                                     // ページを うつったら この ふみきりの つづきは やめる
   const P = pickXtrain();                                        // きょうは なにが くるかな
-  const passEnd = 3000 + P.sec * 1000 + 400;
+  const ready = waitTrainImgs(P.cars, 2500);                     // カンカンの あいだに 絵を じゅんび
   at(1200, function(){ crossingEl.classList.add('down'); xmsg.textContent = 'なにが くるかな?'; });
   at(3000, function(){
-    const tr = makeTrainEl(P.cars, P.fast);                      // しんかんせんは こまかく ゆれる
-    tr.classList.add('xtrain');
-    tr.style.animation = 'xpassR ' + P.sec + 's linear both';
-    xtrainBox.innerHTML = ''; xtrainBox.appendChild(tr);
-    xmsg.textContent = P.name + ' だ!' + (P.key === 'doctor' ? '\nめずらしい!' : '');
-    if (state.volume > 0) P.sound(at, P.sec);                    // at() は いまから かぞえる
+    ready.then(function(){
+      if (gen !== crossingGen) return;
+      xtrainBox.innerHTML = '';
+      xmsg.textContent = P.name + ' だ!' + (P.key === 'doctor' ? '\nめずらしい!' : '');
+      if (state.volume > 0) P.sound(at, P.sec);                  // at() は いまから かぞえる
+      const H = Math.min(window.innerWidth * 0.24, window.innerHeight * 0.20);
+      runTrain(xtrainBox, P.cars, { H:H, sec:P.sec, fast:P.fast, y:'-100%', cls:'xtrain' }).then(afterPass);   // しんかんせんは こまかく ゆれる
+    });
   });
-  at(passEnd, function(){
-    clearInterval(kankanTimer); kankanTimer = null;
-    crossingEl.classList.remove('on', 'down');                   // しゃだんきが あがる
-    xtrainBox.innerHTML = '';
-    xmsg.textContent = '';
-  });
-  at(passEnd + 1700, function(){
+  function afterPass(){                                          // さいごの 車両が でてから しゃだんきを あげる
+    if (gen !== crossingGen) return;
+    at(400, function(){
+      clearInterval(kankanTimer); kankanTimer = null;
+      crossingEl.classList.remove('on', 'down');
+      xtrainBox.innerHTML = '';
+      xmsg.textContent = '';
+    });
+    at(2100, depart);
+  }
+  function depart(){
     xmsg.textContent = 'しゅっぱつ! いってらっしゃい!';
     playFanfare();
     spawnConfetti();
@@ -1388,9 +1444,11 @@ function nextCrossing(){
         nextCrossing();
       });
     });
-  });
+  }
 }
+let crossingGen = 0;
 function stopCrossing(){           // ページを うつるときは とめる
+  crossingGen++;
   crossingTimers.forEach(clearTimeout); crossingTimers = [];
   clearInterval(kankanTimer); kankanTimer = null;
   crossingQueue = []; crossingBusy = false;
@@ -1699,7 +1757,10 @@ document.addEventListener('contextmenu', function(e){
   if (!e.target.closest('input')) e.preventDefault();
 });
 
+let panelBefore = '', panelReset = false;
+function panelSnap(){ return JSON.stringify([state.children, state.night.cups]); }
 function openPanel(){
+  panelBefore = panelSnap(); panelReset = false;   // とじるときに かわっていたら いまの ページも つくりなおす
   currentEditIdx = 0;
   buildTabs();
   buildEditor(currentEditIdx);
@@ -1850,6 +1911,7 @@ resetBtn.addEventListener('click', function(){
   state.children.forEach(function(c){ c.items.forEach(resetItem); });
   state.night.drunk = state.children.map(function(){ return 0; });   // おやすみの おみずも もとにもどす
   save(); render();
+  panelReset = true;
   resetBtn.textContent = 'リセットしました ✓';
   setTimeout(function(){ resetBtn.textContent = 'チェックを全部リセット'; }, 1500);
 });
@@ -1857,6 +1919,8 @@ document.getElementById('close').addEventListener('click', function(){
   commitEditorRows(currentEditIdx);
   save(); render();
   panel.classList.add('hidden');
+  // ⚙は どの ページからも ひらける。リセットや やることを かえたら、いまの ページ(おきがえせん・とうえんせん・おみず など)も さいしょから
+  if (panelReset || panelSnap() !== panelBefore) showMode(state.mode);
 });
 
 // アプリを開き直したとき、日付が変わっていたら自動リセット
