@@ -251,6 +251,79 @@
     text-shadow:0 2px 0 #fff, 0 -2px 0 #fff, 2px 0 0 #fff, -2px 0 0 #fff;
   }
 
+  /* ===== うんち(ページ):みずきは でたら でんしゃカード。たつきは したの おうえんボタン ===== */
+  #unchiPage {
+    position:fixed; inset:0; z-index:45; background:#FDF6EC; overflow-y:auto;
+    display:flex; flex-direction:column; gap:10px;
+    padding:calc(10px + env(safe-area-inset-top)) 12px calc(110px + env(safe-area-inset-bottom));
+  }
+  .uwho { text-align:center; font-size:clamp(18px, 5.5vw, 26px); font-weight:800; margin-bottom:6px; }
+  .ubig {
+    width:100%; appearance:none; border:none; cursor:pointer;
+    font:inherit; font-weight:800; font-size:clamp(28px, 9vw, 52px); color:#fff;
+    background:linear-gradient(#FFB347, #FF8552); border-radius:28px; padding:20px 8px;
+    box-shadow:0 7px 0 #C8602F; display:flex; flex-direction:column; align-items:center; gap:2px;
+  }
+  .ubig .ue { font-size:1.5em; line-height:1; }
+  .ubig .us { font-size:.42em; font-weight:700; min-height:1.2em; }
+  .ubig:active { transform:translateY(5px); box-shadow:0 2px 0 #C8602F; }
+  .ubig.locked { background:#EDE6D6; color:#A89A80; box-shadow:0 7px 0 #D6CBB4; }
+  .ubig.wiggle, .usmall.wiggle { animation:wiggle .3s; }
+  .zukan { background:#fff; border:4px solid #C7CEEA; border-radius:24px; padding:10px; }
+  .ztitle { text-align:center; font-size:clamp(17px, 5vw, 24px); font-weight:800; margin-bottom:8px; }
+  .zgrid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; }
+  @media (min-width:700px){ .zgrid { grid-template-columns:repeat(8, minmax(0, 1fr)); } }   /* iPad は 2だんに おさめる */
+  .zcard {
+    position:relative; aspect-ratio:4/3; border-radius:12px; background:#F7F5F0; padding:4px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  }
+  .zcard img { max-width:100%; max-height:62%; object-fit:contain; }
+  .zcard .zn { font-size:clamp(9px, 2.6vw, 14px); font-weight:800; color:#8A7A5C; text-align:center; line-height:1.1; word-break:keep-all; }   /* 「あおい でんしゃ」は すきまで おりかえす */
+  .zcard .zx { position:absolute; top:2px; right:5px; font-size:clamp(9px, 2.4vw, 12px); font-weight:800; color:#C0A060; }
+  .zcard.none img { filter:brightness(0); opacity:.16; }          /* まだ もっていない カードは かげだけ */
+  .zcard.none .zn { color:#CFC6B4; }
+  .zcard.got { background:#FFF3C4; animation:pop .6s both; box-shadow:0 0 0 3px #FFD23F; }
+  #uHelpers {                         /* たつきの おうえん(おいわいの さいちゅうも おせるように いちばん まえ) */
+    position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:52;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .uhelp {
+    position:relative; overflow:hidden; min-height:76px;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:#fff; border:4px solid #B5EAD7; border-radius:20px; padding:8px 12px 18px;
+  }
+  .uhelp .uname { font-size:clamp(17px, 5vw, 24px); font-weight:800; white-space:nowrap; }
+  .usmall {
+    appearance:none; border:none; cursor:pointer; position:relative; z-index:1;
+    font:inherit; font-weight:800; font-size:clamp(17px, 5vw, 24px); color:#fff;
+    background:#52B788; border-radius:16px; padding:10px 14px; box-shadow:0 4px 0 #2E7D4F;
+  }
+  .usmall:active { transform:translateY(3px); box-shadow:0 1px 0 #2E7D4F; }
+  .umini { top:100%; }                /* おうえんの ちいさい でんしゃ(わくの したを はしる) */
+  .ustar { position:absolute; pointer-events:none; font-size:22px; animation:ustar 1s ease-out forwards; }
+  @keyframes ustar { from{transform:translateY(0) scale(.6); opacity:1} to{transform:translateY(-46px) scale(1.2); opacity:0} }
+  #unchiShow {
+    position:fixed; inset:0; z-index:49; overflow:hidden; background:rgba(255,250,235,.96);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:calc(8vh + env(safe-area-inset-top)) 16px 0;
+  }
+  #uStage { display:flex; flex-direction:column; align-items:center; gap:2vh; width:100%; }
+  .ushowbig { font-size:clamp(70px, 22vw, 160px); line-height:1; animation:tada 1s infinite; }
+  .ushowmsg { font-size:clamp(34px, 11vw, 76px); font-weight:800; color:#FF8552; text-align:center; white-space:pre-line; animation:pop .5s both; }
+  #uTrainBox { position:absolute; left:0; right:0; top:70%; height:0; }
+  .tr.gold img { filter:sepia(1) saturate(4) hue-rotate(-12deg) brightness(1.08) drop-shadow(0 0 12px rgba(255,200,40,.9)); }
+  .ugift { font-size:clamp(90px, 28vw, 190px); line-height:1; animation:ushake .22s infinite; }
+  @keyframes ushake { 0%,100%{transform:rotate(-9deg)} 50%{transform:rotate(9deg)} }
+  .ucard {
+    width:min(84vw, 440px); background:#fff; border:6px solid #FFD23F; border-radius:26px; padding:16px;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    box-shadow:0 8px 30px rgba(255,180,0,.45); animation:pop .5s both;
+  }
+  .ucard img { width:100%; max-height:28vh; object-fit:contain; }
+  .ucard .cn { font-size:clamp(26px, 8vw, 46px); font-weight:800; }
+  .ucard .cnew { color:#fff; background:#FF5A5A; border-radius:999px; padding:2px 16px; font-weight:800; font-size:clamp(16px, 5vw, 24px); }
+  .ucard .cdup { color:#8A7A5C; font-weight:700; font-size:clamp(14px, 4.4vw, 20px); }
+
   /* ===== ページ位置のドットとヒント ===== */
   #dots {
     position:fixed; z-index:15;
@@ -490,6 +563,7 @@
   <button class="mbtn" type="button" data-mode="shitaku">☀️ したく</button>
   <button class="mbtn" type="button" data-mode="okigae">👕 おきがえせん</button>
   <button class="mbtn" type="button" data-mode="touen">🚧 とうえんせん</button>
+  <button class="mbtn" type="button" data-mode="unchi">💩 うんち</button>
   <button class="mbtn" type="button" data-mode="water">🚰 おみず</button>
   <button class="mbtn" type="button" data-mode="sleep">🌙 ねんね</button>
   <button id="menuClose" type="button">とじる</button>
@@ -522,6 +596,20 @@
   </div>
   <div id="xmsg"></div>
 </div>
+
+<div id="unchiPage" class="hidden">
+  <div class="pagetitle">💩 うんち</div>
+  <div id="uMain"></div>
+  <div class="zukan">
+    <div class="ztitle" id="zTitle"></div>
+    <div class="zgrid" id="zGrid"></div>
+  </div>
+</div>
+<div id="unchiShow" class="hidden">
+  <div id="uStage"></div>
+  <div id="uTrainBox"></div>
+</div>
+<div id="uHelpers" class="hidden"></div>
 
 <div id="night" class="hidden">
   <div id="nightAwake">
@@ -581,6 +669,11 @@
   <div class="sec">
     <div class="title">🌙 おやすみの おみずの かず(ひとり ぶん)</div>
     <div class="chiprow" id="cupPicker"></div>
+  </div>
+  <div class="sec">
+    <div class="title">💩 うんちの きろく(あたらしい じゅん)</div>
+    <div class="hint" id="unchiLog"></div>
+    <button id="unchiUndo" class="del">さいごの 1かいを けす(まちがえて おしたとき)</button>
   </div>
   <div class="sec">
     <button id="reset">チェックを全部リセット</button>
@@ -1005,7 +1098,7 @@ function splitStation(s){          // '👕しゃつきる' → { em:'👕', nam
 }
 // ▼ 車内アナウンスの声(ElevenLabsで前もって作った voice/ の音のファイル)。文が この表に あれば その声、
 //   なければ(⚙で 名前や えきを かえたとき) 端末の よみあげ。作りなおしは tools/make-voice.py
-const VOICE_FILES = {"ご乗車ありがとうございます。この電車は、おきがえせん、ずぼんはく行きです。": "voice/start.mp3","ご乗車ありがとうございます。この電車は、とうえんせん、ほいくえん行きです。": "voice/t-start.mp3","みずき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k0-1.mp3","みずき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k0-2.mp3","みずき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k0-3.mp3","みずき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k0-end.mp3","みずき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t0-1.mp3","みずき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t0-2.mp3","みずき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t0-3.mp3","みずき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t0-4.mp3","みずき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t0-end.mp3","みずき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t0-go.mp3","たつき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k1-1.mp3","たつき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k1-2.mp3","たつき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k1-3.mp3","たつき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k1-end.mp3","たつき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t1-1.mp3","たつき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t1-2.mp3","たつき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t1-3.mp3","たつき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t1-4.mp3","たつき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t1-end.mp3","たつき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t1-go.mp3"};
+const VOICE_FILES = {"ご乗車ありがとうございます。この電車は、おきがえせん、ずぼんはく行きです。": "voice/start.mp3","ご乗車ありがとうございます。この電車は、とうえんせん、ほいくえん行きです。": "voice/t-start.mp3","みずき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k0-1.mp3","みずき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k0-2.mp3","みずき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k0-3.mp3","みずき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k0-end.mp3","みずき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t0-1.mp3","みずき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t0-2.mp3","みずき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t0-3.mp3","みずき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t0-4.mp3","みずき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t0-end.mp3","みずき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t0-go.mp3","たつき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k1-1.mp3","たつき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k1-2.mp3","たつき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k1-3.mp3","たつき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k1-end.mp3","たつき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t1-1.mp3","たつき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t1-2.mp3","たつき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t1-3.mp3","たつき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t1-4.mp3","たつき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t1-end.mp3","たつき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t1-go.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、きんいろの うんちとっきゅうが とおります！": "voice/u-start.mp3","でんしゃカード、はやぶさ、ゲットです！": "voice/u-card-hayabusa.mp3","でんしゃカード、こまち、ゲットです！": "voice/u-card-komachi.mp3","でんしゃカード、さくら、ゲットです！": "voice/u-card-sakura.mp3","でんしゃカード、かがやき、ゲットです！": "voice/u-card-kagayaki.mp3","でんしゃカード、きかんしゃ、ゲットです！": "voice/u-card-kikansha.mp3","でんしゃカード、かもつれっしゃ、ゲットです！": "voice/u-card-kamotsu.mp3","でんしゃカード、ろめんでんしゃ、ゲットです！": "voice/u-card-romen.mp3","でんしゃカード、あかい でんしゃ、ゲットです！": "voice/u-card-red.mp3","でんしゃカード、きいろい でんしゃ、ゲットです！": "voice/u-card-yellow.mp3","でんしゃカード、みずいろの でんしゃ、ゲットです！": "voice/u-card-skyblue.mp3","でんしゃカード、むらさきの でんしゃ、ゲットです！": "voice/u-card-purple.mp3","でんしゃカード、あおい でんしゃ、ゲットです！": "voice/u-card-blue.mp3","でんしゃカード、はいいろの でんしゃ、ゲットです！": "voice/u-card-gray.mp3","でんしゃカード、オレンジの でんしゃ、ゲットです！": "voice/u-card-orange.mp3","でんしゃカード、みどりの でんしゃ、ゲットです！": "voice/u-card-green.mp3","でんしゃカード、ドクターイエロー、ゲットです！": "voice/u-card-doctor.mp3","おめでとうございます！でんしゃずかん、ぜんぶ そろいました！": "voice/u-comp.mp3","たつき号から、おめでとう！パチパチパチ！": "voice/u-cheer.mp3"};
 const voiceBufs = {};
 let voiceQueue = [], voiceSrc = null, voiceGen = 0;
 function loadVoice(text){            // 音のファイルを よみこんでおく(おなじ文は 1かいだけ)
@@ -1459,6 +1552,229 @@ window.addEventListener('resize', function(){   // よこむき などで えき
   lineCols.forEach(function(c){ if (!c.moving) placeTrain(c, lineItemOf(c).step || 0, false); });
 });
 
+// ================= うんち(☰ → 💩うんち)。べんぴ ぎみの みずきの ごほうび =================
+// みずき:「でた!」→ おいわい + きんいろの うんちとっきゅう → でんしゃカードが 1まい もらえて ずかんに たまる
+// たつき:みずきの おいわいに まざれる ちいさい「おめでとう」ボタン(おいわいの さいちゅうも おせる)
+// でないと ダメ と かんじさせないため、こどもの がめんには「なんにち でていない」は ださない(きろくは ⚙ の なかだけ)
+const UNCHI_MAIN = 0;                // カードを もらう子(state.children の 0ばん = みずき)。ほかの子は おうえん
+const CARDS = [                      // でんしゃカード(絵は いらすとや。w = でやすさ。ドクターイエローは レア)
+  { k:'hayabusa', name:'はやぶさ',         img:'shinkansen_e5_hayabusa' },
+  { k:'komachi',  name:'こまち',           img:'shinkansen_e6_superkomachi' },
+  { k:'sakura',   name:'さくら',           img:'shinkansen_n700_mizuho_sakura' },
+  { k:'kagayaki', name:'かがやき',         img:'shinkansen_e7_w7' },
+  { k:'kikansha', name:'きかんしゃ',       img:'train_kikansya_kemuri' },
+  { k:'kamotsu',  name:'かもつれっしゃ',   img:'train_kamotsu_ressya' },
+  { k:'romen',    name:'ろめんでんしゃ',   img:'train_toyama_light_rail_transit' },
+  { k:'red',      name:'あかい でんしゃ',   img:'train1_red' },
+  { k:'yellow',   name:'きいろい でんしゃ', img:'train2_yellow' },
+  { k:'skyblue',  name:'みずいろの でんしゃ', img:'train3_skyblue' },
+  { k:'purple',   name:'むらさきの でんしゃ', img:'train4_purple' },
+  { k:'blue',     name:'あおい でんしゃ',   img:'train5_blue' },
+  { k:'gray',     name:'はいいろの でんしゃ', img:'train6_gray' },
+  { k:'orange',   name:'オレンジの でんしゃ', img:'train7_orange' },
+  { k:'green',    name:'みどりの でんしゃ', img:'train8_green' },
+  { k:'doctor',   name:'ドクターイエロー', img:'doctoryellow', w:0.3 }
+];
+function cardOf(k){ return CARDS.find(function(c){ return c.k === k; }); }
+function ensureUnchi(){
+  if (!state.unchi || typeof state.unchi !== 'object') state.unchi = {};
+  const u = state.unchi;
+  if (!u.owned || typeof u.owned !== 'object') u.owned = {};      // { カード: もらった かず }
+  if (!Array.isArray(u.log)) u.log = [];                          // [{ t:じこく, k:カード, n:はじめて? }]
+}
+ensureUnchi();
+function pickCard(){                 // まだ もっていない カードが でやすい(75%)。ぜんぶ そろったら どれでも
+  const fresh = CARDS.filter(function(c){ return !state.unchi.owned[c.k]; });
+  const pool = (fresh.length && Math.random() < 0.75) ? fresh : CARDS;
+  let r = Math.random() * pool.reduce(function(s, c){ return s + (c.w || 1); }, 0);
+  for (let i = 0; i < pool.length; i++){ r -= (pool[i].w || 1); if (r < 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+// 車掌さんの こえ(tools/make-voice.py と おなじ 文に すること)
+function annUnchi(name){ return 'ただいま、' + name + '号の うんちが でました！おめでとうございます！まもなく、きんいろの うんちとっきゅうが とおります！'; }
+function annCard(cardName){ return 'でんしゃカード、' + cardName + '、ゲットです！'; }
+function annComp(){ return 'おめでとうございます！でんしゃずかん、ぜんぶ そろいました！'; }
+function annCheer(name){ return name + '号から、おめでとう！パチパチパチ！'; }
+
+const unchiPage = document.getElementById('unchiPage');
+const unchiShow = document.getElementById('unchiShow');
+const uMain = document.getElementById('uMain');
+const uStage = document.getElementById('uStage');
+const uTrainBox = document.getElementById('uTrainBox');
+const uHelpers = document.getElementById('uHelpers');
+let unchiBusy = false, unchiLocked = false, unchiTimers = [], unchiGen = 0, cheerAt = 0;
+function uat(ms, fn){ unchiTimers.push(setTimeout(fn, ms)); }
+function wiggleEl(el){ el.classList.remove('wiggle'); void el.offsetWidth; el.classList.add('wiggle'); }
+function buildUnchi(gotK){           // うんちの ページ(ひらくたびに つくりなおす)
+  const main = state.children[UNCHI_MAIN];
+  uMain.innerHTML = '';
+  if (!main) return;
+  const who = document.createElement('div'); who.className = 'uwho'; who.textContent = main.icon + ' ' + main.name;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'ubig' + (unchiLocked ? ' locked' : '');
+  const ue = document.createElement('span'); ue.className = 'ue'; ue.textContent = '💩';
+  const ul = document.createElement('span'); ul.textContent = unchiLocked ? 'でたね! すごい!' : 'うんち でた!';
+  const us = document.createElement('span'); us.className = 'us'; us.textContent = unchiLocked ? 'また でたら おしてね' : '';
+  b.appendChild(ue); b.appendChild(ul); b.appendChild(us);
+  b.addEventListener('click', function(){ onUnchi(b); });
+  uMain.appendChild(who); uMain.appendChild(b);
+  // ずかん
+  const owned = state.unchi.owned;
+  const have = CARDS.filter(function(c){ return owned[c.k]; }).length;
+  document.getElementById('zTitle').textContent = '📖 でんしゃずかん ' + have + ' / ' + CARDS.length + (have === CARDS.length ? ' ぜんぶ そろった!' : '');
+  const grid = document.getElementById('zGrid'); grid.innerHTML = '';
+  CARDS.forEach(function(c){
+    const d = document.createElement('div'); d.className = 'zcard' + (owned[c.k] ? '' : ' none') + (c.k === gotK ? ' got' : '');
+    const im = document.createElement('img'); im.src = 'img/' + c.img + '.webp'; im.alt = '';
+    const n = document.createElement('span'); n.className = 'zn'; n.textContent = owned[c.k] ? c.name : '？';
+    d.appendChild(im); d.appendChild(n);
+    if (owned[c.k] > 1){ const x = document.createElement('span'); x.className = 'zx'; x.textContent = '×' + owned[c.k]; d.appendChild(x); }
+    grid.appendChild(d);
+  });
+  // おうえん(みずき いがいの 子)
+  uHelpers.innerHTML = '';
+  state.children.forEach(function(c, ci){
+    if (ci === UNCHI_MAIN) return;
+    const box = document.createElement('div'); box.className = 'uhelp';
+    const nm = document.createElement('span'); nm.className = 'uname'; nm.textContent = c.icon + ' ' + c.name;
+    const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'usmall'; sb.textContent = '👏 おめでとう!';
+    sb.addEventListener('click', function(){ onCheer(ci, box, sb); });
+    box.appendChild(nm); box.appendChild(sb);
+    uHelpers.appendChild(box);
+  });
+}
+function playDrumroll(){             // なにが でるかな(ドロロロ…)
+  if (state.volume <= 0) return;
+  for (let i = 0; i < 20; i++){ noiseBurst(i * 0.08, 0.05, 0.22); tone(392 + i * 18, i * 0.08, 0.06, 'square', 0.12); }
+}
+function playClaps(){                // パチパチパチ
+  if (state.volume <= 0) return;
+  for (let i = 0; i < 6; i++) noiseBurst(i * 0.15 + Math.random() * 0.03, 0.08, 0.55);
+  tone(1047, 0.95, 0.2, 'sine', 0.5); tone(1319, 1.05, 0.3, 'sine', 0.5);
+}
+function onUnchi(btn){
+  audio();
+  if (unchiBusy || unchiLocked){ wiggleEl(btn); return; }    // 1かい おしたら、おとなが ☰ から ひらきなおすまで おやすみ
+  unchiBusy = true;
+  if (musicPlaying) stopMusic();
+  const name = state.children[UNCHI_MAIN].name;
+  const card = pickCard(), isNew = !state.unchi.owned[card.k];
+  state.unchi.owned[card.k] = (state.unchi.owned[card.k] || 0) + 1;
+  state.unchi.log.push({ t:Date.now(), k:card.k, n:isNew });   // さきに きろく(とちゅうで ページを うつっても のこる)
+  if (state.unchi.log.length > 200) state.unchi.log.shift();
+  save();
+  loadTrainImg(card.img); loadVoice(annCard(card.name));
+  const gen = ++unchiGen;
+  const gold = shinkansenCars(SHINKANSEN[0], 2);
+  // 1. おいわい
+  uStage.innerHTML = '';
+  const big = document.createElement('div'); big.className = 'ushowbig'; big.textContent = '💩';
+  const msg = document.createElement('div'); msg.className = 'ushowmsg'; msg.textContent = 'うんち でた!\nすごい!';
+  uStage.appendChild(big); uStage.appendChild(msg);
+  unchiShow.classList.remove('hidden');
+  playFanfare(); spawnConfetti();
+  let voiceDone = false, trainDone = false;
+  announce(annUnchi(name), function(){ voiceDone = true; next(); });
+  // 2. きんいろの うんちとっきゅう
+  uat(1500, function(){
+    waitTrainImgs(gold, 1500).then(function(){
+      if (gen !== unchiGen) return;
+      if (state.volume > 0){ playFuan(); [0.3, 1.05, 1.8, 2.55].forEach(function(s){ uat(s * 1000, playGatan); }); }
+      const H = Math.min(window.innerWidth * 0.22, window.innerHeight * 0.22);
+      return runTrain(uTrainBox, gold, { H:H, sec:3.6, y:'-100%', cls:'gold' });
+    }).then(function(){ trainDone = true; next(); });
+  });
+  function next(){                   // こえと でんしゃが どちらも おわったら くじ
+    if (!voiceDone || !trainDone || gen !== unchiGen) return;
+    uTrainBox.innerHTML = '';
+    uStage.innerHTML = '';
+    const g = document.createElement('div'); g.className = 'ugift'; g.textContent = '🎁';
+    const m = document.createElement('div'); m.className = 'ushowmsg'; m.textContent = 'なにが でるかな?';
+    uStage.appendChild(g); uStage.appendChild(m);
+    playDrumroll();
+    uat(1800, reveal);
+  }
+  function reveal(){                 // 3. カードを みせる
+    if (gen !== unchiGen) return;
+    uStage.innerHTML = '';
+    const cd = document.createElement('div'); cd.className = 'ucard';
+    const im = document.createElement('img'); im.src = 'img/' + card.img + '.webp'; im.alt = '';
+    const cn = document.createElement('div'); cn.className = 'cn'; cn.textContent = card.name;
+    cd.appendChild(im); cd.appendChild(cn);
+    const tag = document.createElement('div');
+    if (isNew){ tag.className = 'cnew'; tag.textContent = 'NEW! はじめて!'; }
+    else { tag.className = 'cdup'; tag.textContent = (state.unchi.owned[card.k]) + 'まいめ'; }
+    cd.appendChild(tag);
+    uStage.appendChild(cd);
+    if (state.volume > 0) DONE_SOUNDS.kirakira.play();
+    spawnConfetti();
+    announce(annCard(card.name), function(){
+      if (gen !== unchiGen) return;
+      const comp = isNew && CARDS.every(function(c){ return state.unchi.owned[c.k]; });
+      if (!comp){ uat(2200, finish); return; }
+      uat(400, function(){           // ぜんぶ そろった!
+        const m = document.createElement('div'); m.className = 'ushowmsg'; m.textContent = '🎉 ずかん ぜんぶ そろった!';
+        uStage.appendChild(m);
+        playFanfare(); spawnConfetti();
+        announce(annComp(), function(){ uat(1500, finish); });
+      });
+    });
+  }
+  function finish(){
+    if (gen !== unchiGen) return;
+    unchiShow.classList.add('hidden'); uStage.innerHTML = '';
+    unchiBusy = false; unchiLocked = true;
+    buildUnchi(card.k);              // もらった カードが ずかんで ひかる
+  }
+}
+function onCheer(ci, box, btn){      // たつきの おめでとう(ちいさい でんしゃ + パチパチ + ほし)
+  audio();
+  const now = Date.now();
+  if (now - cheerAt < 2500){ wiggleEl(btn); return; }   // れんだ しても こえが つみかさならないように
+  cheerAt = now;
+  playClaps();
+  for (let i = 0; i < 5; i++){
+    const s = document.createElement('span'); s.className = 'ustar';
+    s.textContent = i % 2 ? '⭐' : '✨';
+    s.style.left = (10 + Math.random() * 80) + '%'; s.style.top = (20 + Math.random() * 40) + '%';
+    s.style.animationDelay = (i * 0.12) + 's';
+    box.appendChild(s);
+    setTimeout(function(){ s.remove(); }, 1800);
+  }
+  runTrain(box, [car(pickOne(FUTSUU_COLORS))], { H:22, sec:2.4, y:'-100%', cls:'umini' }).then(function(tr){ tr.remove(); });
+  if (!voiceQueue.length && !voiceSrc) announce(annCheer(state.children[ci].name));   // おいわいの こえの さいちゅうは パチパチだけ
+}
+function stopUnchi(){                // ページを うつるときは とめる
+  unchiGen++;
+  unchiTimers.forEach(clearTimeout); unchiTimers = [];
+  unchiBusy = false;
+  unchiShow.classList.add('hidden'); uStage.innerHTML = ''; uTrainBox.innerHTML = '';
+}
+function unchiDays(a, b){            // カレンダーで なんにち ぶりか
+  const d = function(t){ const x = new Date(t); return new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(); };
+  return Math.round((d(b) - d(a)) / 86400000);
+}
+function buildUnchiLog(){            // ⚙ の なかの きろく(小児科で きかれたとき よう)
+  const el = document.getElementById('unchiLog');
+  const log = state.unchi.log;
+  if (!log.length){ el.textContent = 'まだ ありません'; return; }
+  const W = ['日', '月', '火', '水', '木', '金', '土'];
+  const rows = [];
+  for (let i = log.length - 1; i >= Math.max(0, log.length - 14); i--){
+    const e = log[i], d = new Date(e.t), c = cardOf(e.k);
+    const gap = i > 0 ? '(' + (unchiDays(log[i - 1].t, e.t) === 0 ? 'おなじ日' : unchiDays(log[i - 1].t, e.t) + '日ぶり') + ')' : '';
+    rows.push((d.getMonth() + 1) + '/' + d.getDate() + '(' + W[d.getDay()] + ') ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + gap + ' ' + (c ? c.name : '') + (e.n ? ' ✨NEW' : ''));
+  }
+  el.innerHTML = '';
+  rows.forEach(function(r){ const p = document.createElement('div'); p.textContent = r; el.appendChild(p); });
+}
+document.getElementById('unchiUndo').addEventListener('click', function(){
+  const e = state.unchi.log.pop();
+  if (!e) return;
+  const o = state.unchi.owned;
+  if (o[e.k] > 1) o[e.k]--; else delete o[e.k];   // その ときに もらった カードも かえす
+  save(); buildUnchiLog();
+});
+
 // ================= ページ位置のドット・ヒント =================
 const dotsEl = document.getElementById('dots');
 const hintEl = document.getElementById('hint');
@@ -1698,17 +2014,27 @@ function startSleep(){
 
 // ================= ページの きりかえ(☰を1びょう長押し → メニュー。スワイプや ボタンでは いけない) =================
 // えらんだ ページは ひらきなおしても のこる。朝4時を すぎたら「したく」に もどる
-const MODES = ['shitaku', 'okigae', 'touen', 'water', 'sleep'];
+const MODES = ['shitaku', 'okigae', 'touen', 'unchi', 'water', 'sleep'];
 const menuEl = document.getElementById('menu');
 function showMode(mode){
   if (MODES.indexOf(mode) < 0) mode = 'shitaku';
   const prev = state.mode;
   state.mode = mode; state.modeNight = nightDayStr(); save();
   sleepTimers.forEach(clearTimeout); sleepTimers = [];          // ねんねの とちゅうで うつっても とめる
-  if (musicPlaying && (mode === 'water' || mode === 'sleep' || prev === 'sleep')) stopMusic();   // おしたくミュージックは したく⇔おきがえせん では ながしたまま
+  if (musicPlaying && (mode === 'water' || mode === 'sleep' || mode === 'unchi' || prev === 'sleep')) stopMusic();   // おしたくミュージックは したく⇔おきがえせん では ながしたまま
   cancelVoice();
   stopCrossing();
+  stopUnchi();
   document.body.classList.remove('sleeping');
+  unchiPage.classList.toggle('hidden', mode !== 'unchi');
+  uHelpers.classList.toggle('hidden', mode !== 'unchi');
+  if (mode === 'unchi'){             // ☰ から ひらいたら また おせる
+    unchiLocked = false;
+    buildUnchi();
+    preloadTrainImgs();
+    loadVoice(annUnchi(state.children[UNCHI_MAIN].name));
+    state.children.forEach(function(c, ci){ if (ci !== UNCHI_MAIN) loadVoice(annCheer(c.name)); });
+  }
   lineEl.classList.toggle('hidden', mode !== 'okigae' && mode !== 'touen');
   night.classList.toggle('hidden', mode !== 'water' && mode !== 'sleep');
   if (mode === 'okigae' || mode === 'touen') buildLinePage(mode); else { lineColsEl.innerHTML = ''; lineCols = []; }
@@ -1758,7 +2084,7 @@ document.addEventListener('contextmenu', function(e){
 });
 
 let panelBefore = '', panelReset = false;
-function panelSnap(){ return JSON.stringify([state.children, state.night.cups]); }
+function panelSnap(){ return JSON.stringify([state.children, state.night.cups, state.unchi]); }
 function openPanel(){
   panelBefore = panelSnap(); panelReset = false;   // とじるときに かわっていたら いまの ページも つくりなおす
   currentEditIdx = 0;
@@ -1768,6 +2094,7 @@ function openPanel(){
   buildSoundPicker(document.getElementById('doneSoundPicker'), DONE_SOUNDS, 'done');
   buildMusicPicker();
   buildCupPicker();
+  buildUnchiLog();
   volEl.value = Math.round(state.volume * 100);
   panel.classList.remove('hidden');
 }
