@@ -309,9 +309,17 @@
   }
   #uStage { display:flex; flex-direction:column; align-items:center; gap:2vh; width:100%; }
   .ushowbig { font-size:clamp(70px, 22vw, 160px); line-height:1; animation:tada 1s infinite; }
+  .ushowmsg.sm { font-size:clamp(28px, 8.6vw, 64px); }      /* とっきゅうの なまえ(スマホで 1ぎょうに おさめる) */
   .ushowmsg { font-size:clamp(34px, 11vw, 76px); font-weight:800; color:#FF8552; text-align:center; white-space:pre-line; animation:pop .5s both; }
   #uTrainBox { position:absolute; left:0; right:0; top:70%; height:0; }
   .tr.gold img { filter:sepia(1) saturate(4) hue-rotate(-12deg) brightness(1.08) drop-shadow(0 0 12px rgba(255,200,40,.9)); }
+  .tr.niji img { animation:niji 1.1s linear infinite; }      /* にじいろ:いろが ぐるぐる かわる */
+  @keyframes niji { from{filter:saturate(2.2) hue-rotate(0deg)} to{filter:saturate(2.2) hue-rotate(360deg)} }   /* 影を まぜると Safari で 白い しかくが でる */
+  .tr.dy img { filter:brightness(1.1) drop-shadow(0 0 14px rgba(255,225,0,.95)); }
+  .tr .cw { position:relative; flex-shrink:0; }               /* にもつを のせた 車両 */
+  .tr .cw .ld { position:absolute; left:50%; bottom:82%; transform:translateX(-50%); line-height:1; }
+  .upuff { position:absolute; pointer-events:none; line-height:1; animation:upuff 1.8s ease-out forwards; }
+  @keyframes upuff { from{transform:translate(-50%,0) scale(.5); opacity:1} to{transform:translate(30px,-90px) scale(1.4); opacity:0} }
   .ugift { font-size:clamp(90px, 28vw, 190px); line-height:1; animation:ushake .22s infinite; }
   @keyframes ushake { 0%,100%{transform:rotate(-9deg)} 50%{transform:rotate(9deg)} }
   .ucard {
@@ -1098,7 +1106,7 @@ function splitStation(s){          // '👕しゃつきる' → { em:'👕', nam
 }
 // ▼ 車内アナウンスの声(ElevenLabsで前もって作った voice/ の音のファイル)。文が この表に あれば その声、
 //   なければ(⚙で 名前や えきを かえたとき) 端末の よみあげ。作りなおしは tools/make-voice.py
-const VOICE_FILES = {"ご乗車ありがとうございます。この電車は、おきがえせん、ずぼんはく行きです。": "voice/start.mp3","ご乗車ありがとうございます。この電車は、とうえんせん、ほいくえん行きです。": "voice/t-start.mp3","みずき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k0-1.mp3","みずき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k0-2.mp3","みずき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k0-3.mp3","みずき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k0-end.mp3","みずき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t0-1.mp3","みずき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t0-2.mp3","みずき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t0-3.mp3","みずき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t0-4.mp3","みずき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t0-end.mp3","みずき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t0-go.mp3","たつき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k1-1.mp3","たつき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k1-2.mp3","たつき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k1-3.mp3","たつき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k1-end.mp3","たつき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t1-1.mp3","たつき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t1-2.mp3","たつき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t1-3.mp3","たつき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t1-4.mp3","たつき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t1-end.mp3","たつき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t1-go.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、きんいろの うんちとっきゅうが とおります！": "voice/u-start.mp3","でんしゃカード、はやぶさ、ゲットです！": "voice/u-card-hayabusa.mp3","でんしゃカード、こまち、ゲットです！": "voice/u-card-komachi.mp3","でんしゃカード、さくら、ゲットです！": "voice/u-card-sakura.mp3","でんしゃカード、かがやき、ゲットです！": "voice/u-card-kagayaki.mp3","でんしゃカード、きかんしゃ、ゲットです！": "voice/u-card-kikansha.mp3","でんしゃカード、かもつれっしゃ、ゲットです！": "voice/u-card-kamotsu.mp3","でんしゃカード、ろめんでんしゃ、ゲットです！": "voice/u-card-romen.mp3","でんしゃカード、あかい でんしゃ、ゲットです！": "voice/u-card-red.mp3","でんしゃカード、きいろい でんしゃ、ゲットです！": "voice/u-card-yellow.mp3","でんしゃカード、みずいろの でんしゃ、ゲットです！": "voice/u-card-skyblue.mp3","でんしゃカード、むらさきの でんしゃ、ゲットです！": "voice/u-card-purple.mp3","でんしゃカード、あおい でんしゃ、ゲットです！": "voice/u-card-blue.mp3","でんしゃカード、はいいろの でんしゃ、ゲットです！": "voice/u-card-gray.mp3","でんしゃカード、オレンジの でんしゃ、ゲットです！": "voice/u-card-orange.mp3","でんしゃカード、みどりの でんしゃ、ゲットです！": "voice/u-card-green.mp3","でんしゃカード、ドクターイエロー、ゲットです！": "voice/u-card-doctor.mp3","おめでとうございます！でんしゃずかん、ぜんぶ そろいました！": "voice/u-comp.mp3","たつき号から、おめでとう！パチパチパチ！": "voice/u-cheer.mp3"};
+const VOICE_FILES = {"ご乗車ありがとうございます。この電車は、おきがえせん、ずぼんはく行きです。": "voice/start.mp3","ご乗車ありがとうございます。この電車は、とうえんせん、ほいくえん行きです。": "voice/t-start.mp3","みずき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k0-1.mp3","みずき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k0-2.mp3","みずき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k0-3.mp3","みずき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k0-end.mp3","みずき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t0-1.mp3","みずき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t0-2.mp3","みずき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t0-3.mp3","みずき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t0-4.mp3","みずき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t0-end.mp3","みずき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t0-go.mp3","たつき号、ぱじゃまぬぐ駅、とうちゃくです。つぎは〜、おむつかえる〜、おむつかえる〜。": "voice/k1-1.mp3","たつき号、おむつかえる駅、とうちゃくです。つぎは〜、しゃつきる〜、しゃつきる〜。": "voice/k1-2.mp3","たつき号、しゃつきる駅、とうちゃくです。つぎは〜、しゅうてん、ずぼんはく〜、ずぼんはく〜。": "voice/k1-3.mp3","たつき号、しゅうてん、ずぼんはく〜。おきがえ、ぜんぶできました！ご乗車ありがとうございました。": "voice/k1-end.mp3","たつき号、くつしたはく駅、とうちゃくです。つぎは〜、うわぎきる〜、うわぎきる〜。": "voice/t1-1.mp3","たつき号、うわぎきる駅、とうちゃくです。つぎは〜、くつはく〜、くつはく〜。": "voice/t1-2.mp3","たつき号、くつはく駅、とうちゃくです。つぎは〜、へるめっと〜、へるめっと〜。": "voice/t1-3.mp3","たつき号、へるめっと駅、とうちゃくです。つぎは〜、しゅうてん、ふみきり〜、ふみきり〜。": "voice/t1-4.mp3","たつき号、しゅうてん、ふみきり〜。まもなく、でんしゃが とおります。": "voice/t1-end.mp3","たつき号、ほいくえん行き、しゅっぱつ しんこう！いってらっしゃい！": "voice/t1-go.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、きんいろの うんちとっきゅうが とおります！": "voice/u-start.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、にじいろの うんちとっきゅうが とおります！": "voice/u-start-niji.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、うんち きかんしゃが とおります！": "voice/u-start-sl.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、ながーい うんち かもつれっしゃが とおります！": "voice/u-start-kamotsu.mp3","ただいま、みずき号の うんちが でました！おめでとうございます！まもなく、めずらしい ドクターイエローが とおります！": "voice/u-start-doctor.mp3","でんしゃカード、はやぶさ、ゲットです！": "voice/u-card-hayabusa.mp3","でんしゃカード、こまち、ゲットです！": "voice/u-card-komachi.mp3","でんしゃカード、さくら、ゲットです！": "voice/u-card-sakura.mp3","でんしゃカード、かがやき、ゲットです！": "voice/u-card-kagayaki.mp3","でんしゃカード、きかんしゃ、ゲットです！": "voice/u-card-kikansha.mp3","でんしゃカード、かもつれっしゃ、ゲットです！": "voice/u-card-kamotsu.mp3","でんしゃカード、ろめんでんしゃ、ゲットです！": "voice/u-card-romen.mp3","でんしゃカード、あかい でんしゃ、ゲットです！": "voice/u-card-red.mp3","でんしゃカード、きいろい でんしゃ、ゲットです！": "voice/u-card-yellow.mp3","でんしゃカード、みずいろの でんしゃ、ゲットです！": "voice/u-card-skyblue.mp3","でんしゃカード、むらさきの でんしゃ、ゲットです！": "voice/u-card-purple.mp3","でんしゃカード、あおい でんしゃ、ゲットです！": "voice/u-card-blue.mp3","でんしゃカード、はいいろの でんしゃ、ゲットです！": "voice/u-card-gray.mp3","でんしゃカード、オレンジの でんしゃ、ゲットです！": "voice/u-card-orange.mp3","でんしゃカード、みどりの でんしゃ、ゲットです！": "voice/u-card-green.mp3","でんしゃカード、ドクターイエロー、ゲットです！": "voice/u-card-doctor.mp3","おめでとうございます！でんしゃずかん、ぜんぶ そろいました！": "voice/u-comp.mp3","たつき号から、おめでとう！パチパチパチ！": "voice/u-cheer.mp3"};
 const voiceBufs = {};
 let voiceQueue = [], voiceSrc = null, voiceGen = 0;
 function loadVoice(text){            // 音のファイルを よみこんでおく(おなじ文は 1かいだけ)
@@ -1404,7 +1412,12 @@ function makeTrainEl(cars, fast, H){ // 絵を つないで 1ぽんの れっし
     im.src = 'img/' + c.f + '.webp'; im.alt = '';
     im.style.height = (H * c.h) + 'px'; im.style.width = carW(c, H) + 'px';
     if (c.flip) im.className = 'flip';
-    jig.appendChild(im);
+    if (c.puff) im.dataset.puff = '1';   // うんちSL:ここから けむりの かわりに 💩 と ⭐ が でる
+    if (!c.load){ jig.appendChild(im); return; }
+    const w = document.createElement('span'); w.className = 'cw';   // 💩 を のせた 車両
+    const ld = document.createElement('span'); ld.className = 'ld'; ld.textContent = c.load;
+    ld.style.fontSize = (H * c.h * 0.6) + 'px';
+    w.appendChild(im); w.appendChild(ld); jig.appendChild(w);
   });
   tr.appendChild(jig);
   return tr;
@@ -1575,6 +1588,50 @@ const CARDS = [                      // でんしゃカード(絵は いらす�
   { k:'green',    name:'みどりの でんしゃ', img:'train8_green' },
   { k:'doctor',   name:'ドクターイエロー', img:'doctoryellow', w:0.3 }
 ];
+// うんち特急(まいかい くじ。まえと おなじ しゅるいは こない。ドクターイエローは たまにしか こない)
+//   word は 車掌さんの こえ(tools/make-voice.py の UTRAIN_WORDS と おなじに すること)。label は がめんの もじ
+function uWagon(load){ const c = car('train_kamotsu_ressya_kamotsu', 1.0); c.load = load; return c; }
+function soundUGold(at, sec){ playFuan(); for (let t = 0.3; t < sec; t += 0.75) at(t * 1000, playGatan); }
+function soundUNiji(at, sec){        // キラキラ のぼる おと + しんかんせん
+  [1047, 1319, 1568, 2093, 2637].forEach(function(f, i){ tone(f, i * 0.08, 0.35, 'sine', 0.3); });
+  soundShinkansen(at, sec);
+  at((sec - 1.4) * 1000, function(){ if (state.volume > 0) [2637, 2093, 1568].forEach(function(f, i){ tone(f, i * 0.1, 0.3, 'sine', 0.25); }); });
+}
+const UTRAINS = {
+  gold:    { w:1, word:'きんいろの うんちとっきゅう',    label:'🌟 きんいろ\nうんちとっきゅう!', sec:3.6, fast:true, cls:'gold', sound:soundUGold,
+             cars:function(){ return shinkansenCars(SHINKANSEN[0], 2); } },
+  niji:    { w:1, word:'にじいろの うんちとっきゅう',    label:'🌈 にじいろ\nうんちとっきゅう!', sec:3.8, fast:true, cls:'niji', sound:soundUNiji,
+             cars:function(){ return shinkansenCars(SHINKANSEN[1], 2); } },
+  sl:      { w:1, word:'うんち きかんしゃ',              label:'🚂 うんち\nきかんしゃ!',        sec:6.0, puff:true, sound:soundKikansha,
+             cars:function(){ const l = car('train_kikansya_kemuri', 2.6); l.puff = true; return [l, uWagon('💩'), uWagon('💩')]; } },
+  kamotsu: { w:1, word:'ながーい うんち かもつれっしゃ', label:'🚛 ながーい\nうんちかもつ!',     sec:9.0, sound:soundKamotsu,
+             cars:function(){ const cs = [car('train_kamotsu_ressya', 1.1)]; for (let i = 0; i < 9; i++) cs.push(uWagon('💩')); cs.push(uWagon('🎉')); return cs; } },
+  doctor:  { w:0.4, word:'めずらしい ドクターイエロー',  label:'✨ ドクターイエロー\nめずらしい!', sec:3.6, fast:true, cls:'dy', sound:soundDoctor,
+             cars:function(){ return shinkansenCars({ head:'doctoryellow', mid:'doctoryellow_chukan' }, 2); } }
+};
+function pickUtrain(){
+  const keys = Object.keys(UTRAINS).filter(function(k){ return k !== state.lastUtrain; });
+  let r = Math.random() * keys.reduce(function(s, k){ return s + UTRAINS[k].w; }, 0), k = keys[0];
+  for (let i = 0; i < keys.length; i++){ r -= UTRAINS[keys[i]].w; if (r < 0){ k = keys[i]; break; } }
+  state.lastUtrain = k;
+  return k;
+}
+function startPuffs(box, tr, gen){   // うんちSL の えんとつから 💩 と ⭐
+  let i = 0;
+  const id = setInterval(function(){
+    const im = tr.querySelector('img[data-puff]');
+    if (gen !== unchiGen || !tr.isConnected || !im){ clearInterval(id); return; }
+    const r = im.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (r.right < 0) { clearInterval(id); return; }
+    const p = document.createElement('span'); p.className = 'upuff';
+    p.textContent = (i++ % 3 === 2) ? '⭐' : '💩';
+    p.style.fontSize = (r.height * 0.2) + 'px';
+    p.style.left = (r.left - b.left + r.width * 0.3) + 'px'; p.style.top = (r.top - b.top + r.height * 0.05) + 'px';
+    box.appendChild(p);
+    setTimeout(function(){ p.remove(); }, 1900);
+  }, 320);
+  unchiTimers.push(id);              // stopUnchi の clearTimeout で とまる(setInterval も おなじ ばんごう)
+}
 function cardOf(k){ return CARDS.find(function(c){ return c.k === k; }); }
 function ensureUnchi(){
   if (!state.unchi || typeof state.unchi !== 'object') state.unchi = {};
@@ -1591,7 +1648,7 @@ function pickCard(){                 // まだ もっていない カードが �
   return pool[pool.length - 1];
 }
 // 車掌さんの こえ(tools/make-voice.py と おなじ 文に すること)
-function annUnchi(name){ return 'ただいま、' + name + '号の うんちが でました！おめでとうございます！まもなく、きんいろの うんちとっきゅうが とおります！'; }
+function annUnchi(name, word){ return 'ただいま、' + name + '号の うんちが でました！おめでとうございます！まもなく、' + word + 'が とおります！'; }
 function annCard(cardName){ return 'でんしゃカード、' + cardName + '、ゲットです！'; }
 function annComp(){ return 'おめでとうございます！でんしゃずかん、ぜんぶ そろいました！'; }
 function annCheer(name){ return name + '号から、おめでとう！パチパチパチ！'; }
@@ -1664,7 +1721,9 @@ function onUnchi(btn){
   save();
   loadTrainImg(card.img); loadVoice(annCard(card.name));
   const gen = ++unchiGen;
-  const gold = shinkansenCars(SHINKANSEN[0], 2);
+  const uk = pickUtrain(), ut = UTRAINS[uk], ucars = ut.cars();
+  save();
+  ucars.forEach(function(c){ loadTrainImg(c.f); });
   // 1. おいわい
   uStage.innerHTML = '';
   const big = document.createElement('div'); big.className = 'ushowbig'; big.textContent = '💩';
@@ -1673,14 +1732,17 @@ function onUnchi(btn){
   unchiShow.classList.remove('hidden');
   playFanfare(); spawnConfetti();
   let voiceDone = false, trainDone = false;
-  announce(annUnchi(name), function(){ voiceDone = true; next(); });
-  // 2. きんいろの うんちとっきゅう
+  announce(annUnchi(name, ut.word), function(){ voiceDone = true; next(); });
+  // 2. うんち特急(くじで きまった しゅるい)
   uat(1500, function(){
-    waitTrainImgs(gold, 1500).then(function(){
+    waitTrainImgs(ucars, 1500).then(function(){
       if (gen !== unchiGen) return;
-      if (state.volume > 0){ playFuan(); [0.3, 1.05, 1.8, 2.55].forEach(function(s){ uat(s * 1000, playGatan); }); }
+      msg.textContent = ut.label; msg.classList.add('sm');
+      if (state.volume > 0) ut.sound(uat, ut.sec);
       const H = Math.min(window.innerWidth * 0.22, window.innerHeight * 0.22);
-      return runTrain(uTrainBox, gold, { H:H, sec:3.6, y:'-100%', cls:'gold' });
+      const run = runTrain(uTrainBox, ucars, { H:H, sec:ut.sec, fast:ut.fast, y:'-100%', cls:ut.cls });
+      if (ut.puff){ const tr = uTrainBox.lastChild; if (tr) startPuffs(uTrainBox, tr, gen); }
+      return run;
     }).then(function(){ trainDone = true; next(); });
   });
   function next(){                   // こえと でんしゃが どちらも おわったら くじ
@@ -2032,7 +2094,7 @@ function showMode(mode){
     unchiLocked = false;
     buildUnchi();
     preloadTrainImgs();
-    loadVoice(annUnchi(state.children[UNCHI_MAIN].name));
+    Object.keys(UTRAINS).forEach(function(k){ loadVoice(annUnchi(state.children[UNCHI_MAIN].name, UTRAINS[k].word)); });
     state.children.forEach(function(c, ci){ if (ci !== UNCHI_MAIN) loadVoice(annCheer(c.name)); });
   }
   lineEl.classList.toggle('hidden', mode !== 'okigae' && mode !== 'touen');
