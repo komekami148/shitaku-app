@@ -836,6 +836,26 @@ function playGatan(){                               // ガタンゴトン×2(電
 }
 function playFuan(){ sweep(659, 659, 0, 0.7, 'sawtooth', 0.3); sweep(784, 784, 0, 0.7, 'sawtooth', 0.25); }   // ファーン(警笛)
 function playHyun(){ sweep(500, 1400, 0, 1.3, 'sine', 0.5); sweep(250, 700, 0, 1.3, 'triangle', 0.3); }        // ヒューン(飛行機)
+function playShun(){                                // シューン(新幹線が すぐそばを 走りぬける 1.6秒)
+  const a = audio(), t = a.currentTime, dur = 1.5;
+  const n = Math.floor(a.sampleRate * dur);
+  const buf = a.createBuffer(1, n, a.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const src = a.createBufferSource(); src.buffer = buf;
+  const f = a.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.2;   // 風を切る「シュー」
+  f.frequency.setValueAtTime(700, t);
+  f.frequency.exponentialRampToValueAtTime(3000, t + 0.6);                  // ちかづくと 高く
+  f.frequency.exponentialRampToValueAtTime(900, t + dur);                   // とおざかると 低く
+  const g = a.createGain(), v = 0.9 * state.volume * 0.5;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(v, t + 0.6);                          // いちばん ちかい ところで 大きく
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(a.destination);
+  src.start(t); src.stop(t + dur + 0.05);
+  sweep(1320, 1760, 0, 0.6, 'sine', 0.12);                                  // 「ュー」の 音の すじ(ちかづく)
+  sweep(1760, 990, 0.6, 0.9, 'sine', 0.12);                                 // 「ン」(とおざかる)
+}
+function isShinkansen(ci){ const c = state.children[ci]; return !!c && c.icon.indexOf('🚄') !== -1; }   // アイコンが🚄の子は新幹線
 function isPlane(ci){ const c = state.children[ci]; return !!c && c.icon.indexOf('✈') !== -1; }      // アイコンが✈️の子は飛行機
 // ▼ 「やる」ボタンの音の候補(設定画面で選べる)。ciは押した子の番号
 const GO_SOUNDS = {
@@ -843,9 +863,10 @@ const GO_SOUNDS = {
   piron:  { label:'ピロン', play:function(){ tone(1318, 0,    0.16, 'sine', 0.7); tone(988,  0.08, 0.22, 'sine', 0.6); } },
   pokon:  { label:'ポコン', play:function(){ tone(659,  0,    0.22, 'triangle', 0.7); } },
   kirari: { label:'キラリ', play:function(){ tone(1568, 0,    0.12, 'sine', 0.5); tone(2093, 0.07, 0.18, 'sine', 0.55); } },
-  norimono: { label:'のりもの', play:function(ci){ if (isPlane(ci)) playHyun(); else playGatan(); } },
+  norimono: { label:'のりもの', play:function(ci){ if (isPlane(ci)) playHyun(); else if (isShinkansen(ci)) playShun(); else playGatan(); } },
   gatan:  { label:'ガタンゴトン', play:playGatan },
-  fuan:   { label:'ファーン',     play:playFuan }
+  fuan:   { label:'ファーン',     play:playFuan },
+  shun:   { label:'シューン',     play:playShun }
 };
 // ▼ 「できた」ボタンの音の候補(設定画面で選べる)
 const DONE_SOUNDS = {
