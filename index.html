@@ -52,6 +52,11 @@
     display:flex; flex-direction:column; align-items:center; gap:2px;
   }
   .cicon { font-size:clamp(34px, 10vw, 58px); line-height:1; }
+  .kpic { display:block; height:1em; width:auto; transform:scaleX(-1); }   /* いらすとやの 絵は 左むきなので 右むきに */
+  .cicon .kpic { height:.9em; }
+  .garage .inside .kpic { height:.6em; }
+  .kpic.inl { display:inline-block; height:.9em; vertical-align:-.1em; margin-right:.3em; }   /* なまえの よこの 小さい 絵 */
+  .ltrain .kpic.ldown { height:.8em; transform:rotate(-90deg); }                              /* 左むきの 絵を 下むきに */
   .cname { font-size:clamp(20px, 6vw, 30px); font-weight:800; color:#4A4A4A; }
   .subtitle { font-size:clamp(12px, 3.6vw, 16px); font-weight:700; color:#C0A060; letter-spacing:.16em; }
 
@@ -122,7 +127,7 @@
   @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(1.5deg)} 75%{transform:rotate(-1.5deg)} }
   @keyframes invite { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
 
-  /* ===== 「やる」を押すと のりものが カードを横切る(みずき=電車 / たつき=飛行機) ===== */
+  /* ===== 「やる」を押すと のりものが カードを横切る(ふたりとも しんかんせんの 絵) ===== */
   .step.go { position:relative; overflow:hidden; }
   .vehicle {
     position:absolute; left:0; bottom:4px;
@@ -750,6 +755,27 @@ function ensureIconV2(){         // みず＝🚄しんかんせん・たつ＝�
   state.iconV2 = true;
   save();
 }
+function ensureIconV3(){         // ふたりとも しんかんせんの 絵に する(みず＝0けい・たつ＝700けい)
+  if (state.iconV3) return;
+  const pics = ['shinkansen_0kei', 'shinkansen_700kei'];
+  state.children.forEach(function(c, i){ if (pics[i]){ c.icon = '🚄'; c.pic = pics[i]; } });
+  state.iconV3 = true;
+  save();
+}
+function picEl(child){            // その子の のりもの:絵が あれば 右むきの 絵、なければ 絵文字
+  if (child.pic){
+    const im = document.createElement('img');
+    im.src = 'img/' + child.pic + '.webp'; im.alt = ''; im.className = 'kpic';
+    return im;
+  }
+  const s = document.createElement('span'); s.textContent = child.icon;
+  return s;
+}
+function setLabel(el, child){     // 「(小さい 絵) なまえ」を el に いれる
+  el.textContent = '';
+  const p = picEl(child); p.classList.add('inl');
+  el.appendChild(p); el.appendChild(document.createTextNode((child.pic ? '' : ' ') + child.name));
+}
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -757,8 +783,8 @@ function load(){
       if (!Array.isArray(s.children)){          // 旧データ(兄弟なし)から兄弟用へ移行
         const oldItems = Array.isArray(s.items) ? s.items : defaultItems();
         s.children = [
-          { name:'みずき', icon:'🚄', items: oldItems },
-          { name:'たつき', icon:'🚃', items: defaultItems() }
+          { name:'みずき', icon:'🚄', pic:'shinkansen_0kei', items: oldItems },
+          { name:'たつき', icon:'🚄', pic:'shinkansen_700kei', items: defaultItems() }
         ];
         delete s.items;
       }
@@ -779,8 +805,8 @@ function load(){
   }catch(e){}
   return {
     children: [
-      { name:'みずき', icon:'🚄', items: defaultItems() },
-      { name:'たつき', icon:'🚃', items: defaultItems() }
+      { name:'みずき', icon:'🚄', pic:'shinkansen_0kei', items: defaultItems() },
+      { name:'たつき', icon:'🚄', pic:'shinkansen_700kei', items: defaultItems() }
     ],
     volume: 0.7,
     sound: { go:'pon', done:'pinpon', music:'genki' },
@@ -793,6 +819,7 @@ ensureNight();
 ensureLine();
 ensureTouen();
 ensureIconV2();
+ensureIconV3();
 
 // ================= 効果音(Web Audioで生成・音源ファイル不要) =================
 // ▼ 音の種類はGO_SOUNDS/DONE_SOUNDSに追加すれば設定画面の選択肢が増える。ファンファーレはplayFanfareの中身を変更
@@ -1046,7 +1073,7 @@ function render(){
     sec.dataset.ci = ci;
 
     const head = document.createElement('div'); head.className = 'childhead';
-    const cicon = document.createElement('span'); cicon.className = 'cicon'; cicon.textContent = child.icon;
+    const cicon = document.createElement('span'); cicon.className = 'cicon'; cicon.appendChild(picEl(child));
     const cname = document.createElement('span'); cname.className = 'cname'; cname.textContent = child.name;
     const sub = document.createElement('span'); sub.className = 'subtitle'; sub.textContent = 'きょうの したく';
     head.appendChild(cicon); head.appendChild(cname); head.appendChild(sub);
@@ -1106,7 +1133,9 @@ function runVehicle(ci, el){                  // のりものを1回だけ走ら
   const v = document.createElement('span');
   v.className = 'vehicle ' + (plane ? 'plane' : 'train');
   const body = document.createElement('span'); body.className = 'body';
-  body.textContent = plane ? '✈️' : state.children[ci].icon.repeat(3);   // 🚄🚄🚄 か 🚃🚃🚃
+  const ch = state.children[ci];
+  if (!plane && ch.pic) body.appendChild(picEl(ch));             // しんかんせんの 絵が 1りょう 走る
+  else body.textContent = plane ? '✈️' : ch.icon.repeat(3);
   v.appendChild(body);
   el.appendChild(v);
   v.addEventListener('animationend', function(e){ if (e.target === v) v.remove(); });
@@ -1240,7 +1269,7 @@ function buildLinePage(kind){      // 線路の ページを ひらくたびに 
   state.children.forEach(function(child, ci){
     const col = document.createElement('div'); col.className = 'lcol';
     col.style.setProperty('--c', LINE_COLORS[ci % LINE_COLORS.length]);
-    const head = document.createElement('div'); head.className = 'lhead'; head.textContent = child.icon + ' ' + child.name;
+    const head = document.createElement('div'); head.className = 'lhead'; setLabel(head, child);
     col.appendChild(head);
     lineColsEl.appendChild(col);
     const itemIdx = child.items.findIndex(function(x){ return x.line === K.line && x.enabled !== false; });
@@ -1255,7 +1284,9 @@ function buildLinePage(kind){      // 線路の ページを ひらくたびに 
     const rail = document.createElement('div'); rail.className = 'rail';
     const stations = document.createElement('div'); stations.className = 'lstations';
     const train = document.createElement('span'); train.className = 'ltrain';
-    const tb = document.createElement('span'); tb.textContent = isPlane(ci) ? '✈️' : child.icon;
+    const tb = document.createElement('span');
+    if (!isPlane(ci) && child.pic){ const im = picEl(child); im.classList.add('ldown'); tb.appendChild(im); }   // せんろは たてなので 鼻を 下に むける
+    else tb.textContent = isPlane(ci) ? '✈️' : child.icon;
     train.appendChild(tb);
     const nodes = [{ em:'🚉', name:'しゅっぱつ' }].concat(it.stations.map(splitStation));
     nodes.forEach(function(s){
@@ -1696,7 +1727,7 @@ function buildUnchi(gotK){           // うんちの ページ(ひらくたび�
   const main = state.children[UNCHI_MAIN];
   uMain.innerHTML = '';
   if (!main) return;
-  const who = document.createElement('div'); who.className = 'uwho'; who.textContent = main.icon + ' ' + main.name;
+  const who = document.createElement('div'); who.className = 'uwho'; setLabel(who, main);
   const b = document.createElement('button'); b.type = 'button'; b.className = 'ubig' + (unchiLocked ? ' locked' : '');
   const ue = document.createElement('span'); ue.className = 'ue'; ue.textContent = '💩';
   const ul = document.createElement('span'); ul.textContent = unchiLocked ? 'でたね! すごい!' : 'うんち でた!';
@@ -1722,7 +1753,7 @@ function buildUnchi(gotK){           // うんちの ページ(ひらくたび�
   state.children.forEach(function(c, ci){
     if (ci === UNCHI_MAIN) return;
     const box = document.createElement('div'); box.className = 'uhelp';
-    const nm = document.createElement('span'); nm.className = 'uname'; nm.textContent = c.icon + ' ' + c.name;
+    const nm = document.createElement('span'); nm.className = 'uname'; setLabel(nm, c);
     const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'usmall'; sb.textContent = '👏 おめでとう!';
     sb.addEventListener('click', function(){ onCheer(ci, box, sb); });
     box.appendChild(nm); box.appendChild(sb);
@@ -1997,7 +2028,7 @@ function buildSleepBtns(){
   sleepPressed = state.children.map(function(){ return false; });
   state.children.forEach(function(child, ci){
     const b = document.createElement('button'); b.type = 'button'; b.className = 'sleepbtn';
-    const si = document.createElement('span'); si.className = 'si'; si.textContent = child.icon;
+    const si = document.createElement('span'); si.className = 'si'; si.appendChild(picEl(child));
     const sl = document.createElement('span'); sl.className = 'sl'; sl.textContent = 'ねんね 💤';
     const ss = document.createElement('span'); ss.className = 'ss';
     b.appendChild(si); b.appendChild(sl); b.appendChild(ss);
@@ -2024,7 +2055,7 @@ function buildWater(){
   state.children.forEach(function(child, ci){
     const row = document.createElement('div'); row.className = 'waterrow';
     const who = document.createElement('div'); who.className = 'who';
-    who.textContent = child.icon + ' ' + child.name;
+    setLabel(who, child);
     const cups = document.createElement('div'); cups.className = 'cups';
     for (let k = 0; k < state.night.cups; k++){
       const cup = document.createElement('button');
@@ -2075,8 +2106,8 @@ function startSleep(){
   playSleepChime();
   const inside = document.getElementById('garageInside');
   inside.innerHTML = '';
-  state.children.forEach(function(c){                // それぞれの のりもの(🚃・✈️)が しゃこに入る
-    const v = document.createElement('span'); v.textContent = c.icon;
+  state.children.forEach(function(c){                // それぞれの のりもの(しんかんせんの 絵)が しゃこに入る
+    const v = document.createElement('span'); v.appendChild(picEl(c));
     inside.appendChild(v);
   });
   const stageInner = sleepStage.querySelector('.stageinner');   // ほしも いっしょに 暗くなるよう 中に入れる
@@ -2231,7 +2262,7 @@ function buildTabs(){
   state.children.forEach(function(c, i){
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'ctab' + (i === currentEditIdx ? ' active' : '');
-    b.textContent = c.icon + ' ' + c.name;
+    setLabel(b, c);
     b.addEventListener('click', function(){
       if (i === currentEditIdx) return;
       commitEditorRows(currentEditIdx);
