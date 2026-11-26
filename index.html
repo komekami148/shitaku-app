@@ -742,6 +742,14 @@ function ensureTouen(){          // とうえんせんを ふたりに 1つず�
   }
   save();
 }
+function ensureIconV2(){         // みず＝🚄しんかんせん・たつ＝🚃でんしゃ に かえる(まえの きほんの 🚃・✈️ の ままなら 1回だけ)
+  if (state.iconV2) return;
+  const c = state.children;
+  if (c[0] && c[0].icon === '🚃') c[0].icon = '🚄';
+  if (c[1] && c[1].icon.indexOf('✈') !== -1) c[1].icon = '🚃';
+  state.iconV2 = true;
+  save();
+}
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
@@ -749,8 +757,8 @@ function load(){
       if (!Array.isArray(s.children)){          // 旧データ(兄弟なし)から兄弟用へ移行
         const oldItems = Array.isArray(s.items) ? s.items : defaultItems();
         s.children = [
-          { name:'みずき', icon:'🚃', items: oldItems },
-          { name:'たつき', icon:'✈️', items: defaultItems() }
+          { name:'みずき', icon:'🚄', items: oldItems },
+          { name:'たつき', icon:'🚃', items: defaultItems() }
         ];
         delete s.items;
       }
@@ -771,8 +779,8 @@ function load(){
   }catch(e){}
   return {
     children: [
-      { name:'みずき', icon:'🚃', items: defaultItems() },
-      { name:'たつき', icon:'✈️', items: defaultItems() }
+      { name:'みずき', icon:'🚄', items: defaultItems() },
+      { name:'たつき', icon:'🚃', items: defaultItems() }
     ],
     volume: 0.7,
     sound: { go:'pon', done:'pinpon', music:'genki' },
@@ -784,6 +792,7 @@ let state = load();
 ensureNight();
 ensureLine();
 ensureTouen();
+ensureIconV2();
 
 // ================= 効果音(Web Audioで生成・音源ファイル不要) =================
 // ▼ 音の種類はGO_SOUNDS/DONE_SOUNDSに追加すれば設定画面の選択肢が増える。ファンファーレはplayFanfareの中身を変更
@@ -1076,7 +1085,7 @@ function runVehicle(ci, el){                  // のりものを1回だけ走ら
   const v = document.createElement('span');
   v.className = 'vehicle ' + (plane ? 'plane' : 'train');
   const body = document.createElement('span'); body.className = 'body';
-  body.textContent = plane ? '✈️' : '🚃🚃🚃';
+  body.textContent = plane ? '✈️' : state.children[ci].icon.repeat(3);   // 🚄🚄🚄 か 🚃🚃🚃
   v.appendChild(body);
   el.appendChild(v);
   v.addEventListener('animationend', function(e){ if (e.target === v) v.remove(); });
@@ -1225,7 +1234,7 @@ function buildLinePage(kind){      // 線路の ページを ひらくたびに 
     const rail = document.createElement('div'); rail.className = 'rail';
     const stations = document.createElement('div'); stations.className = 'lstations';
     const train = document.createElement('span'); train.className = 'ltrain';
-    const tb = document.createElement('span'); tb.textContent = isPlane(ci) ? '✈️' : '🚃';
+    const tb = document.createElement('span'); tb.textContent = isPlane(ci) ? '✈️' : child.icon;
     train.appendChild(tb);
     const nodes = [{ em:'🚉', name:'しゅっぱつ' }].concat(it.stations.map(splitStation));
     nodes.forEach(function(s){
